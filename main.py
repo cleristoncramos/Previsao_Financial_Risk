@@ -1,8 +1,19 @@
 
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+# Configura codificação de saída para UTF-8 compatível com Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+# Silencia logs e avisos desnecessários do TensorFlow
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 # Adiciona o diretório raiz ao PYTHONPATH
 BASE_DIR = Path(__file__).resolve().parent
@@ -14,6 +25,7 @@ from src.config import (
     DATA_FIM,
     DATA_INICIO,
     FIGURES_DIR,
+    MODELS_DIR,
     TICKER_REF,
 )
 from src.data_collection import (
@@ -22,12 +34,20 @@ from src.data_collection import (
 )
 from src.eda import executar_eda_completa
 from src.evaluation import (
+    adicionar_baseline_ingenuo,
     avaliar_todos_modelos,
-    plotar_real_vs_predicoes,
     plotar_curva_aprendizado_nn,
+    plotar_real_vs_predicoes,
     validacao_cruzada_temporal,
 )
 from src.interpretability import explicar_com_lime, explicar_com_shap
+from src.model_store import (
+    carregar_modelos_salvos,
+    modelos_existem,
+    pasta_modelos_ativo,
+    predizer_com_modelos,
+    salvar_modelos_treinados,
+)
 from src.models import treinar_todos_modelos
 from src.preprocessing import preparar_dados_modelagem
 from src.report import gerar_relatorio_final
@@ -59,6 +79,11 @@ def parse_args():
         type=str,
         default=TICKER_REF,
         help=f"Ticker de referência para o estudo preditivo (padrão: {TICKER_REF})",
+    )
+    parser.add_argument(
+        "--carregar-modelos",
+        action="store_true",
+        help="Carrega os modelos persistidos em disco sem necessidade de retreino",
     )
     return parser.parse_args()
 
@@ -127,17 +152,28 @@ def main():
     dataset = preparar_dados_modelagem(df_ref)
 
     # -------------------------------------------------------------
-    # 5. Modelagem (Treinamento)
+    # 5. Modelagem (Treinamento ou Carregamento Persistido)
     # -------------------------------------------------------------
-    modelos, predicoes, extras = treinar_todos_modelos(dataset)
+    extras = {}
+    pasta_modelos = pasta_modelos_ativo(ticker_ref)
+    if args.carregar_modelos and modelos_existem(pasta_modelos):
+        print(f"\n[INFO] Carregando modelos persistidos em disco ({pasta_modelos})...")
+        modelos, _, _ = carregar_modelos_salvos(pasta_modelos)
+        predicoes = predizer_com_modelos(modelos, dataset.X_test_scaled)
+        print("  ✓ Modelos carregados e inferências geradas com sucesso!")
+    else:
+        modelos, predicoes, extras = treinar_todos_modelos(
+            dataset, salvar=True, pasta_modelos=pasta_modelos, ticker_ref=ticker_ref
+        )
 
     if args.etapa == "treino":
         print("\n[FIM] Etapa de Treinamento concluída com êxito.")
         return
 
     # -------------------------------------------------------------
-    # 6. Avaliação de Modelos
+    # 6. Avaliação de Modelos (com Baseline Acadêmico de Persistência)
     # -------------------------------------------------------------
+    predicoes = adicionar_baseline_ingenuo(dataset.features, dataset.X_test, predicoes)
     df_resultados = avaliar_todos_modelos(dataset.y_test, predicoes)
 
     # Gráfico Comparativo Real vs Previsões
@@ -198,7 +234,7 @@ def main():
             )
 
     # -------------------------------------------------------------
-    # 8. Relatório Final de Desempenho
+    # 8. Relatório Final de Desempenho & Metadados
     # -------------------------------------------------------------
     gerar_relatorio_final(
         df_resultados,
@@ -209,7 +245,20 @@ def main():
         n_test=len(dataset.X_test),
     )
 
-    print("\n✅ Execução completa do pipeline finalizada com sucesso!")
+    # Persiste metadados atualizados com a tabela final de métricas
+    salvar_modelos_treinados(
+        modelos=modelos,
+        scaler=dataset.scaler,
+        df_resultados=df_resultados,
+        ticker_ref=ticker_ref,
+        features=dataset.features,
+        n_train=len(dataset.X_train),
+        n_test=len(dataset.X_test),
+        pasta_modelos=pasta_modelos,
+        historico_nn=extras.get("history_nn"),
+    )
+
+    print("\n[SUCESSO] Execução completa do pipeline finalizada com sucesso!")
 
 
 if __name__ == "__main__":

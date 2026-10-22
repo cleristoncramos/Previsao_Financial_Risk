@@ -92,7 +92,7 @@ flowchart TD
 Três arquiteturas distintas e complementares:
 1. **XGBoost Regressor:** Árvores de decisão impulsionadas por gradiente com regularização.
 2. **LightGBM Regressor:** Gradient boosting otimizado com divisão de folhas por profundidade e alta eficiência.
-3. **Rede Neural MLP (Keras / TensorFlow):** Arquitetura profunda com camadas densas (128 $\rightarrow$ 64 $\rightarrow$ 32), *Batch Normalization*, camadas de *Dropout* e parada antecipada (*Early Stopping*).
+3. **Rede Neural MLP (Keras / TensorFlow):** Arquitetura profunda com camadas densas (128 $\rightarrow$ 64 $\rightarrow$ 32), camadas de *Dropout*, saída reescalada para a escala do alvo e parada antecipada (*Early Stopping*) validada no final do conjunto de treino.
 
 ### 5. Avaliação e Validação (`src/evaluation.py`)
 - Métricas computadas sobre a base de teste:
@@ -148,16 +148,23 @@ pip install -r requirements.txt
 
 ## 🚀 Como Executar
 
-### Execução Completa (Pipeline de Ponta a Ponta)
+### 🌐 Execução do Dashboard Web Interativo (Streamlit)
+Para iniciar a interface gráfica acadêmica e profissional com todas as análises, gráficos Plotly interativos, simulador de risco em tempo real e XAI:
+```bash
+streamlit run app.py
+```
+Acesse no seu navegador: `http://localhost:8501`.
+
+### Execução Completa (Pipeline de Ponta a Ponta via CLI)
 Para executar todas as etapas sequencialmente (download, EDA, treino, métricas, XAI e relatório):
 ```bash
 python main.py
 ```
 
-### Executar Utilizando Dados Locais (Sem Refazer Download)
-Caso os dados já tenham sido baixados anteriormente na pasta `dados_coletados/`, você pode economizar tempo executando:
+### Executar Utilizando Dados Locais e Modelos Persistidos (Inferência Instantânea)
+Caso os dados já tenham sido baixados e os modelos salvos em `modelos_salvos/`:
 ```bash
-python main.py --usar-dados-locais
+python main.py --usar-dados-locais --carregar-modelos
 ```
 
 ### Execução em Modo Headless / Terminal (Salvar Gráficos sem Abrir Janelas)

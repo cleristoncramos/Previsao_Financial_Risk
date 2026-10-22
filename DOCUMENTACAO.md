@@ -173,7 +173,7 @@ Módulo analítico e estatístico:
 ### 5.5. [`src/models.py`](src/models.py)
 - `treinar_xgboost()`: Ajusta o modelo XGBoost Regressor.
 - `treinar_lightgbm()`: Ajusta o modelo LightGBM Regressor.
-- `construir_rede_neural()`: Compila a arquitetura MLP Keras com Batch Normalization e Dropout.
+- `construir_rede_neural()`: Compila a arquitetura MLP Keras com Dropout e saída reescalada para a escala do alvo.
 - `treinar_rede_neural()`: Treina a rede MLP com Early Stopping para monitorar perda de validação.
 - `treinar_todos_modelos()`: Orquestra o treinamento concorrente dos três modelos preditivos.
 
@@ -222,12 +222,13 @@ Otimização baseada em histogramas e crescimento de árvores orientado a folhas
 ### 6.3. Rede Neural MLP (Perceptron Multicamadas via Keras)
 Arquitetura profunda feedforward com controle estrito de variância:
 - **Camada de Entrada:** 8 neurônios (correspondente às 8 features de entrada).
-- **Camada Oculta 1:** 128 neurônios com ativação ReLU, seguida de *Batch Normalization* e *Dropout* de 30% ($p=0.3$).
-- **Camada Oculta 2:** 64 neurônios com ativação ReLU, *Batch Normalization* e *Dropout* de 20% ($p=0.2$).
+- **Camada Oculta 1:** 128 neurônios com ativação ReLU, seguida de *Dropout* de 10% ($p=0.1$).
+- **Camada Oculta 2:** 64 neurônios com ativação ReLU, seguida de *Dropout* de 10% ($p=0.1$).
 - **Camada Oculta 3:** 32 neurônios com ativação ReLU.
-- **Camada de Saída:** 1 neurônio com ativação linear contínua.
+- **Camada de Saída:** 1 neurônio linear seguido de uma camada `Rescaling` ($\hat{y} = z \cdot \sigma_y + \mu_y$, com $\mu_y$ e $\sigma_y$ do treino), para que a rede aprenda em escala padronizada e devolva a volatilidade na escala original.
 - **Otimizador:** Adam ($\eta = 0.001$).
-- **Early Stopping:** Parada precoce monitorando `val_loss` com paciência de 20 épocas.
+- **Early Stopping:** Parada precoce monitorando `val_loss` com paciência de 20 épocas. A validação usa os últimos 15% do conjunto de **treino** (ordem temporal preservada); o conjunto de teste não participa da escolha de épocas.
+- *Batch Normalization* foi removida: com o alvo de baixa magnitude, ela levava a R² negativo no teste.
 
 ---
 

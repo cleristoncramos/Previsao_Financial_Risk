@@ -1,0 +1,174 @@
+/* ==============================================================
+   ESTILIZAÇÃO ACADÊMICA E PROFISSIONAL - TCC UFPI / CEAD
+   Tema: Previsão de Riscos Financeiros com Data Science e ML
+   Autora: Lorrana Evelyn de Araújo Pereira
+   ============================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Cabeçalho Institucional */
+.academic-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 1.8rem 2.2rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    margin-bottom: 1.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.academic-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    color: #93c5fd;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.35rem 0.8rem;
+    border-radius: 9999px;
+    margin-bottom: 0.6rem;
+    border: 1px solid rgba(147, 197, 253, 0.3);
+}
+
+.academic-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 0.2rem 0 0.6rem 0;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+}
+
+.academic-meta {
+    font-size: 0.92rem;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.academic-meta strong {
+    color: #f8fafc;
+}
+
+/* Cards de Métricas / KPI */
+.kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.3rem;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #0f172a;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.2;
+}
+
+.kpi-sub {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.3rem;
+}
+
+.kpi-best {
+    border-top: 4px solid #2563eb;
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 40%);
+}
+
+.kpi-benchmark {
+    border-top: 4px solid #64748b;
+}
+
+.kpi-alert {
+    border-top: 4px solid #ef4444;
+}
+
+.kpi-good {
+    border-top: 4px solid #10b981;
+}
+
+/* Semáforo de Risco */
+.risk-pill {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.risk-low {
+    background-color: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.risk-moderate {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.risk-high {
+    background-color: #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fdba74;
+}
+
+.risk-extreme {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+/* Caixa de Teoria / Metodologia */
+.theory-box {
+    background: #f8fafc;
+    border-left: 4px solid #1e3a8a;
+    padding: 1.2rem 1.4rem;
+    border-radius: 0 10px 10px 0;
+    margin: 1rem 0;
+    border: 1px solid #e2e8f0;
+    border-left-width: 4px;
+}
+
+.theory-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 0.4rem;
+}
+
+/* Rodapé Acadêmico */
+.academic-footer {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+    padding: 2rem 0 1rem 0;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 3rem;
+}

@@ -56,6 +56,23 @@ def avaliar_todos_modelos(y_real: np.ndarray, dict_predicoes: Dict[str, np.ndarr
     return df_res
 
 
+def adicionar_baseline_ingenuo(
+    features: List[str],
+    X_test_unscaled: np.ndarray,
+    dict_predicoes: Dict[str, np.ndarray],
+) -> Dict[str, np.ndarray]:
+    """
+    Adiciona o Modelo de Persistência (Random Walk / Naive: sigma_{t+1} = sigma_t)
+    ao dicionário de predições para servir de benchmarking de referência.
+    """
+    preds = dict(dict_predicoes)
+    col_vol = [f for f in features if f.startswith("Volatilidade_")]
+    if col_vol:
+        idx_vol = features.index(col_vol[0])
+        preds["Baseline Ingênuo (Persistência)"] = X_test_unscaled[:, idx_vol]
+    return preds
+
+
 def validacao_cruzada_temporal(
     X: np.ndarray,
     y: np.ndarray,
@@ -120,6 +137,7 @@ def plotar_real_vs_predicoes(
         "XGBoost": dict(color="#ff7f0e", dash="dash"),
         "LightGBM": dict(color="#2ca02c", dash="dot"),
         "Rede Neural (MLP)": dict(color="#9467bd", dash="dashdot"),
+        "Baseline Ingênuo (Persistência)": dict(color="#7f7f7f", dash="dot"),
     }
 
     for nome, y_pred in dict_predicoes.items():

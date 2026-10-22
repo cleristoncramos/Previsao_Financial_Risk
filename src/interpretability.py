@@ -39,7 +39,7 @@ def explicar_com_shap(
     print("\n" + "=" * 60)
     print(" ETAPA 7.1: INTERPRETABILIDADE GLOBAL & LOCAL COM SHAP")
     print("=" * 60)
-    print("🔵 Calculando valores SHAP (TreeExplainer)...")
+    print("  -> Calculando valores SHAP (TreeExplainer)...")
 
     explainer = shap.TreeExplainer(modelo_arvore)
     shap_values = explainer.shap_values(X_test_scaled)
@@ -92,7 +92,7 @@ def explicar_com_shap(
         data_str = ""
         if datas_test is not None:
             data_str = f" — Data: {pd.to_datetime(datas_test[idx_exemplo]).date()}"
-        print(f"📅 Gerando SHAP Waterfall para o índice [{idx_exemplo}]{data_str}...")
+        print(f"  -> Gerando SHAP Waterfall para o índice [{idx_exemplo}]{data_str}...")
 
         expected_val = (
             explainer.expected_value[0]

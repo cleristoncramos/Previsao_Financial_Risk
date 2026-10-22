@@ -29,32 +29,36 @@ def gerar_relatorio_final(
     if df_resultados.empty:
         return ""
 
-    melhor = df_resultados.iloc[0]
+    modelos_ml = df_resultados[~df_resultados["Modelo"].str.contains("Baseline", case=False)]
+    melhor_ml = modelos_ml.iloc[0] if not modelos_ml.empty else df_resultados.iloc[0]
+
     linhas = [
-        "=" * 64,
+        "=" * 68,
         "  RELATÓRIO FINAL — TCC Lorrana Evelyn de Araújo Pereira",
         "  Curso: Tecnologia em Gestão de Dados — UFPI / CEAD",
         f"  Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        "=" * 64,
+        "=" * 68,
         f"\n  Ativo analisado : {ticker_ref}",
         f"  Período         : {data_inicio} -> {data_fim}",
         f"  Amostras treino : {n_train}",
         f"  Amostras teste  : {n_test}",
         f"  Variável-alvo   : Volatilidade histórica (21 dias) — t+1",
-        f"\n  {'Modelo':<22} {'RMSE':>10}  {'MAE':>10}  {'R²':>8}",
-        "  " + "-" * 54,
+        f"\n  {'Modelo / Abordagem':<34} {'RMSE':>10}  {'MAE':>10}  {'R²':>8}",
+        "  " + "-" * 66,
     ]
 
     for _, row in df_resultados.iterrows():
-        flag = " ⭐ (Melhor)" if row["Modelo"] == melhor["Modelo"] else ""
+        is_best_ml = (row["Modelo"] == melhor_ml["Modelo"])
+        is_baseline = "Baseline" in row["Modelo"]
+        flag = " ⭐ (Melhor ML)" if is_best_ml else (" 📌 (Benchmark)" if is_baseline else "")
         linhas.append(
-            f"  {row['Modelo']:<22} {row['RMSE']:>10.5f}  {row['MAE']:>10.5f}  {row['R2']:>8.4f}{flag}"
+            f"  {row['Modelo']:<34} {row['RMSE']:>10.5f}  {row['MAE']:>10.5f}  {row['R2']:>8.4f}{flag}"
         )
 
     linhas.extend(
         [
-            f"\n  Melhor modelo   : {melhor['Modelo']} (menor RMSE)",
-            "=" * 64,
+            f"\n  Melhor Modelo Preditivo (ML) : {melhor_ml['Modelo']} (RMSE = {melhor_ml['RMSE']:.5f})",
+            "=" * 68,
         ]
     )
 
@@ -66,5 +70,9 @@ def gerar_relatorio_final(
         with open(caminho, "w", encoding="utf-8") as f:
             f.write(texto_relatorio)
         print(f"\n  [Relatório Salvo] {caminho}")
+
+        caminho_csv = pasta_saida / "metricas_modelos.csv"
+        df_resultados.to_csv(caminho_csv, index=False, encoding="utf-8-sig")
+        print(f"  [Métricas CSV Salvas] {caminho_csv}")
 
     return texto_relatorio

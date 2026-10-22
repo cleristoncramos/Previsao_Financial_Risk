@@ -7,10 +7,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "dados_coletados"
 FIGURES_DIR = BASE_DIR / "relatorios_graficos"
+MODELS_DIR = BASE_DIR / "modelos_salvos"
 
 # Garantir existência de pastas
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Ativos monitorados no Yahoo Finance
 ATIVOS = {
@@ -78,5 +80,6 @@ NEURAL_NETWORK_PARAMS = {
     "batch_size": 32,
     "learning_rate": 1e-3,
     "early_stopping_patience": 20,
+    "validation_split": 0.15,  # Fração final do treino usada no Early Stopping
     "random_state": RANDOM_STATE,
 }
