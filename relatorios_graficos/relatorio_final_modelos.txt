@@ -12,8 +12,8 @@
 
   Modelo / Abordagem                       RMSE         MAE        R²
   ------------------------------------------------------------------
-  Baseline Ingênuo (Persistência)       0.01185     0.00601    0.9299 📌 (Benchmark)
-  XGBoost                               0.01406     0.00895    0.9013 ⭐ (Melhor ML)
+  Baseline Ingênuo (Persistência)       0.01185     0.00601    0.9299 (Benchmark)
+  XGBoost                               0.01406     0.00895    0.9013 (Melhor ML)
   LightGBM                              0.01496     0.00959    0.8883
   Rede Neural (MLP)                     0.02419     0.01625    0.7080
 

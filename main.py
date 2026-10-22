@@ -160,7 +160,7 @@ def main():
         print(f"\n[INFO] Carregando modelos persistidos em disco ({pasta_modelos})...")
         modelos, _, _ = carregar_modelos_salvos(pasta_modelos)
         predicoes = predizer_com_modelos(modelos, dataset.X_test_scaled)
-        print("  ✓ Modelos carregados e inferências geradas com sucesso!")
+        print("  [OK] Modelos carregados e inferências geradas com sucesso!")
     else:
         modelos, predicoes, extras = treinar_todos_modelos(
             dataset, salvar=True, pasta_modelos=pasta_modelos, ticker_ref=ticker_ref

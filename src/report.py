@@ -50,7 +50,7 @@ def gerar_relatorio_final(
     for _, row in df_resultados.iterrows():
         is_best_ml = (row["Modelo"] == melhor_ml["Modelo"])
         is_baseline = "Baseline" in row["Modelo"]
-        flag = " ⭐ (Melhor ML)" if is_best_ml else (" 📌 (Benchmark)" if is_baseline else "")
+        flag = " (Melhor ML)" if is_best_ml else (" (Benchmark)" if is_baseline else "")
         linhas.append(
             f"  {row['Modelo']:<34} {row['RMSE']:>10.5f}  {row['MAE']:>10.5f}  {row['R2']:>8.4f}{flag}"
         )
