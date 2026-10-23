@@ -83,7 +83,8 @@ def ir_para_painel():
 col_marca, col_info = st.columns([3, 1], vertical_alignment="center")
 with col_marca:
     st.markdown(
-        '<div class="landing-marca">Previsão de Riscos Financeiros</div>',
+        '<div class="landing-marca">Previsão de Riscos Financeiros '
+        '<span>com Data Science e Machine Learning</span></div>',
         unsafe_allow_html=True,
     )
 with col_info:
@@ -113,7 +114,6 @@ with st.container(key="landing_hero"):
         st.markdown('<p class="landing-nota">Acesso direto ao painel, sem cadastro.</p>', unsafe_allow_html=True)
 
     with col_video:
-        st.markdown('<div class="landing-video-rotulo">Apresentação em 30 segundos</div>', unsafe_allow_html=True)
         if VIDEO_APRESENTACAO.exists():
             st.image(str(VIDEO_APRESENTACAO), use_container_width=True)
         else:

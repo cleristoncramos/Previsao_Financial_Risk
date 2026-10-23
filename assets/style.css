@@ -8,7 +8,7 @@
    entre as seções. Cores base definidas em .streamlit/config.toml.
    ============================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
 
 :root {
     --cor-fundo: #f4f5f7;
@@ -551,13 +551,23 @@ h4 {
 /* --------------------------------------------------------------
    Página inicial (landing page)
    -------------------------------------------------------------- */
+/* Título superior da página inicial: serifada de exibição (Fraunces), com a segunda parte em destaque */
 .landing-marca {
-    font-size: 0.95rem;
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+    font-size: 1.55rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
     color: var(--cor-marinho-escuro);
-    border-left: 4px solid var(--cor-marinho);
-    padding-left: 0.7rem;
+    border-left: 5px solid var(--cor-marinho);
+    padding: 0.15rem 0 0.15rem 0.9rem;
+    animation: landing-surgir 0.7s ease-out both;
+}
+
+.landing-marca span {
+    color: var(--cor-marinho);
+    font-style: italic;
+    font-weight: 600;
 }
 
 [class*="st-key-landing_hero"] {
@@ -603,15 +613,6 @@ h1.landing-titulo {
     font-size: 0.8rem;
     color: var(--cor-texto-suave) !important;
     margin-top: 0.4rem;
-}
-
-.landing-video-rotulo {
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--cor-texto-suave);
-    margin-bottom: 0.5rem;
 }
 
 /* Em telas estreitas, o vídeo desce para baixo do texto */
@@ -673,7 +674,8 @@ h1.landing-titulo {
 }
 
 .landing-secao h2 {
-    font-size: 1.45rem !important;
+    font-family: 'Fraunces', Georgia, serif !important;
+    font-size: 1.6rem !important;
     font-weight: 700 !important;
     color: var(--cor-marinho-escuro) !important;
     padding: 0 0 1.25rem 0 !important;
@@ -686,27 +688,73 @@ h1.landing-titulo {
     gap: 1.25rem;
 }
 
+/* Cartões do tutorial: entrada em sequência e leve elevação ao passar o mouse.
+   fill-mode "backwards" para a animação de entrada não bloquear o efeito de hover depois. */
 .landing-cartao {
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--cor-borda-suave);
-    border-top: 3px solid var(--cor-marinho);
-    background: #fbfbfc;
-    padding: 1.25rem 1.3rem;
+    background: var(--cor-painel);
+    padding: 1.4rem 1.4rem 1.3rem 1.4rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    animation: landing-surgir 0.6s ease-out backwards;
 }
 
+.landing-cartao::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--cor-marinho);
+    transform: scaleX(0.22);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+
+.landing-cartao:hover {
+    transform: translateY(-4px);
+    border-color: var(--cor-marinho);
+    box-shadow: 0 14px 26px -16px rgba(23, 37, 84, 0.45);
+}
+
+.landing-cartao:hover::before {
+    transform: scaleX(1);
+}
+
+.landing-grade .landing-cartao:nth-child(1) { animation-delay: 0.05s; }
+.landing-grade .landing-cartao:nth-child(2) { animation-delay: 0.12s; }
+.landing-grade .landing-cartao:nth-child(3) { animation-delay: 0.19s; }
+.landing-grade .landing-cartao:nth-child(4) { animation-delay: 0.26s; }
+.landing-grade .landing-cartao:nth-child(5) { animation-delay: 0.33s; }
+.landing-grade .landing-cartao:nth-child(6) { animation-delay: 0.40s; }
+
 .landing-cartao-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #c7d0e6;
+    margin-bottom: 0.7rem;
+    transition: color 0.25s ease;
+}
+
+.landing-cartao:hover .landing-cartao-num {
     color: var(--cor-marinho);
-    margin-bottom: 0.5rem;
 }
 
 .landing-cartao h3 {
-    font-size: 1rem !important;
+    font-size: 1.02rem !important;
     font-weight: 700 !important;
     color: var(--cor-texto) !important;
     padding: 0 0 0.45rem 0 !important;
     margin: 0 !important;
+    transition: color 0.25s ease;
+}
+
+.landing-cartao:hover h3 {
+    color: var(--cor-marinho-escuro) !important;
 }
 
 .landing-cartao p {
@@ -716,6 +764,7 @@ h1.landing-titulo {
     margin: 0;
 }
 
+/* Primeiros passos: linha do tempo com entrada em sequência e destaque ao passar o mouse */
 .landing-passos {
     list-style: none;
     counter-reset: passo;
@@ -726,30 +775,82 @@ h1.landing-titulo {
 .landing-passos li {
     counter-increment: passo;
     position: relative;
-    padding: 0.9rem 0 0.9rem 3rem;
+    padding: 1rem 1rem 1rem 3.4rem;
     min-height: 1.9rem;
-    border-bottom: 1px solid var(--cor-borda-suave);
     line-height: 1.6;
+    transition: background 0.25s ease;
+    animation: landing-deslizar 0.55s ease-out backwards;
 }
 
-.landing-passos li:last-child {
-    border-bottom: none;
+.landing-passos li:nth-child(1) { animation-delay: 0.05s; }
+.landing-passos li:nth-child(2) { animation-delay: 0.15s; }
+.landing-passos li:nth-child(3) { animation-delay: 0.25s; }
+.landing-passos li:nth-child(4) { animation-delay: 0.35s; }
+.landing-passos li:nth-child(5) { animation-delay: 0.45s; }
+
+.landing-passos li:hover {
+    background: #f5f7fc;
 }
 
+/* Número do passo */
 .landing-passos li::before {
     content: counter(passo);
     position: absolute;
-    left: 0;
-    top: 0.75rem;
-    width: 1.9rem;
-    height: 1.9rem;
+    left: 0.4rem;
+    top: 0.85rem;
+    width: 2rem;
+    height: 2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--cor-marinho);
+    background: var(--cor-painel);
+    border: 2px solid var(--cor-marinho);
+    z-index: 1;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.landing-passos li:hover::before {
     background: var(--cor-marinho);
+    color: #ffffff;
+    transform: scale(1.08);
+}
+
+/* Linha vertical ligando os números */
+.landing-passos li::after {
+    content: "";
+    position: absolute;
+    left: 1.4rem;
+    top: 2.85rem;
+    bottom: -0.85rem;
+    width: 2px;
+    background: #d4d7dd;
+}
+
+.landing-passos li:last-child::after {
+    display: none;
+}
+
+@keyframes landing-surgir {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes landing-deslizar {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* Quem prefere menos movimento (configuração do sistema) vê tudo parado */
+@media (prefers-reduced-motion: reduce) {
+    .landing-marca,
+    .landing-cartao,
+    .landing-passos li {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* Chamada final */
