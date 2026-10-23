@@ -57,7 +57,12 @@ from src.evaluation import (
     calcular_metricas,
     validacao_cruzada_temporal,
 )
-from src.figuras import figuras_avaliacao, figuras_exploratorias, figuras_interpretabilidade
+from src.figuras import (
+    figuras_avaliacao,
+    figuras_exploratorias,
+    figuras_interpretabilidade,
+    formatar_condicao_lime,
+)
 from src.model_store import (
     carregar_modelos_salvos,
     modelos_existem,
@@ -206,10 +211,10 @@ def figuras_avaliacao_cached(ticker: str, ultima_data: str, versao_modelo: str, 
 @st.cache_data(show_spinner="Gerando figuras SHAP e LIME...")
 def figuras_interpretabilidade_cached(
     ticker: str, ultima_data: str, versao_modelo: str,
-    _shap, _base, _X_scaled, _X, _features, _idx, _data, _lime,
+    _shap, _base, _X_scaled, _X, _features, idx: int, data_amostra: str, _lime,
 ):
-    """Figuras PNG de interpretabilidade; o cache é indexado por ticker, série e versão do modelo."""
-    return figuras_interpretabilidade(ticker, _shap, _base, _X_scaled, _X, _features, _idx, _data, _lime)
+    """Figuras PNG de interpretabilidade; o cache é indexado por ticker, série, modelo e pregão escolhido."""
+    return figuras_interpretabilidade(ticker, _shap, _base, _X_scaled, _X, _features, idx, data_amostra, _lime)
 
 
 # =============================================================================
@@ -1091,15 +1096,25 @@ with aba_xai:
         with secao("previsao_local"):
             st.markdown("#### 3. Simulador Local Interativo: Previsão de um Pregão Específico")
 
-            idx_selecionado = st.slider(
-                "Selecione o índice da amostra de teste:",
-                min_value=0,
-                max_value=len(dataset.datas_test) - 1,
-                value=10,
-                help="Permite inspecionar a previsão individual do modelo para qualquer dia da base de teste.",
+            # Seleção por data (e não por índice): o pregão escolhido também define a decomposição
+            # SHAP/LIME da seção 4 e as figuras locais do catálogo na aba Relatórios
+            datas_opcoes = [d.strftime("%d/%m/%Y") for d in datas_test_dt]
+            data_amostra = st.select_slider(
+                "Data do pregão analisado:",
+                options=datas_opcoes,
+                value=datas_opcoes[-1],
+                key=f"data_pregao_xai_{ticker_selecionado}",
+                help=(
+                    "Arraste para escolher qualquer pregão do conjunto de teste (20% finais da série). "
+                    "Também é possível clicar no controle e usar as setas do teclado."
+                ),
             )
+            st.caption(
+                f"Conjunto de teste: {datas_opcoes[0]} a {datas_opcoes[-1]} ({len(datas_opcoes)} pregões). "
+                "A decomposição abaixo e as figuras SHAP Waterfall e LIME do catálogo acompanham esta data."
+            )
+            idx_selecionado = datas_opcoes.index(data_amostra)
 
-            data_amostra = datas_test_dt[idx_selecionado].strftime("%d/%m/%Y")
             val_real = dataset.y_test[idx_selecionado]
             amostra_scaled = X_test_scaled[idx_selecionado].reshape(1, -1)
             pred_xgb_dia = float(m_xgb.predict(amostra_scaled)[0])
@@ -1177,6 +1192,7 @@ with aba_xai:
                     dataset.X_test[idx_selecionado],
                 )
                 df_lime = pd.DataFrame(pesos_lime, columns=["Condição", "Peso"]).iloc[::-1]
+                df_lime["Condição"] = df_lime["Condição"].map(formatar_condicao_lime)
                 fig_lime = go.Figure(
                     go.Bar(
                         x=df_lime["Peso"],
@@ -1418,8 +1434,8 @@ with aba_relatorios:
                 meta_dict.get("historico_nn"),
             )
             if "XGBoost" in modelos_dict:
-                # Amostra de referência do pipeline (índice 10 do conjunto de teste)
-                idx_ref = min(10, len(dataset.X_test) - 1)
+                # Mesmo pregão escolhido na aba Interpretabilidade (XAI)
+                idx_ref = idx_selecionado
                 valores_shap_cat, base_shap_cat = shap_cached(
                     ticker_selecionado, versao_modelo, modelos_dict["XGBoost"], X_test_scaled
                 )

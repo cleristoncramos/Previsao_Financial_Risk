@@ -11,6 +11,7 @@ o que mantém a grade do catálogo alinhada.
 """
 
 import io
+import re
 import threading
 from typing import Dict, List, Optional, Tuple
 
@@ -47,9 +48,26 @@ def _nova_figura():
     return fig, ax
 
 
+def _titulo(fig, texto: str) -> None:
+    """
+    Título preso à borda esquerda da figura (não do eixo): com rótulos longos no eixo Y,
+    um título alinhado ao eixo era empurrado para a direita e saía cortado na exportação.
+    """
+    fig.suptitle(texto, x=0.015, y=0.975, ha="left", va="top", fontsize=14, fontweight="bold", color=COR_MARINHO)
+
+
+def formatar_condicao_lime(condicao: str) -> str:
+    """Números >= 1000 nas condições do LIME com separador de milhar brasileiro (ex.: 22.568.590)."""
+    def _formatar(m: re.Match) -> str:
+        valor = float(m.group(0))
+        return f"{valor:,.0f}".replace(",", ".") if abs(valor) >= 1000 else m.group(0)
+
+    return re.sub(r"-?\d+(?:\.\d+)?", _formatar, condicao)
+
+
 def _estilizar(ax, titulo: str, rotulo_x: str = "", rotulo_y: str = "") -> None:
     """Aplica o padrão visual do painel: fundo branco, grade discreta e eixos finos."""
-    ax.set_title(titulo, loc="left", fontsize=14, fontweight="bold", color=COR_MARINHO, pad=14)
+    _titulo(ax.figure, titulo)
     ax.set_xlabel(rotulo_x, fontsize=11, color="#5b6472")
     ax.set_ylabel(rotulo_y, fontsize=11, color="#5b6472")
     ax.grid(True, color="#eceef2", linewidth=0.8)
@@ -65,7 +83,8 @@ def _estilizar(ax, titulo: str, rotulo_x: str = "", rotulo_y: str = "") -> None:
 def _para_png(fig) -> bytes:
     """Fixa o tamanho padrão, salva a figura em PNG e libera a memória."""
     fig.set_size_inches(*TAMANHO_FIGURA)
-    fig.tight_layout()
+    # Reserva a faixa superior para o título da figura e mantém margem nas bordas
+    fig.tight_layout(rect=(0.01, 0.01, 0.99, 0.92))
     buffer = io.BytesIO()
     fig.savefig(buffer, format="png", dpi=DPI_FIGURA, facecolor="white")
     plt.close(fig)
@@ -125,7 +144,8 @@ def figuras_exploratorias(
         if not df_ret.empty:
             corr = df_ret.corr()
             fig, ax = _nova_figura()
-            mapa = ax.imshow(corr.values, cmap="RdBu_r", vmin=-1, vmax=1)
+            # aspect="auto" faz o mapa ocupar a largura da figura (sem faixa vazia à esquerda)
+            mapa = ax.imshow(corr.values, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
             ax.set_xticks(range(len(corr)), corr.columns, rotation=0, fontsize=10)
             ax.set_yticks(range(len(corr)), corr.index, fontsize=10)
             for i in range(len(corr)):
@@ -134,8 +154,7 @@ def figuras_exploratorias(
                     ax.text(j, i, f"{valor:.2f}", ha="center", va="center", fontsize=9,
                             color="white" if abs(valor) > 0.6 else COR_TEXTO)
             fig.colorbar(mapa, ax=ax, fraction=0.035, pad=0.02)
-            ax.set_title("Correlação dos Retornos Diários entre Ativos", loc="left", fontsize=14,
-                         fontweight="bold", color=COR_MARINHO, pad=14)
+            _titulo(fig, "Correlação dos Retornos Diários entre Ativos")
             for lado in ax.spines.values():
                 lado.set_visible(False)
             figuras.append(("eda_matriz_correlacao.png", "Matriz de Correlação entre Ativos", _para_png(fig)))
@@ -222,8 +241,7 @@ def figuras_interpretabilidade(
         # 2. Beeswarm (gráfico canônico da biblioteca SHAP)
         shap.summary_plot(valores_shap, X_test, feature_names=features, show=False, plot_size=TAMANHO_FIGURA)
         fig = plt.gcf()
-        fig.axes[0].set_title(f"{ticker} — SHAP Beeswarm: Impacto de Cada Amostra", loc="left",
-                              fontsize=14, fontweight="bold", color=COR_MARINHO, pad=14)
+        _titulo(fig, f"{ticker} — SHAP Beeswarm: Impacto de Cada Amostra")
         # Traduz os rótulos que a biblioteca SHAP gera em inglês
         fig.axes[0].set_xlabel("Valor SHAP (efeito na volatilidade prevista)", fontsize=11, color="#5b6472")
         barra_cores = fig.axes[-1]
@@ -240,12 +258,12 @@ def figuras_interpretabilidade(
         )
         shap.plots.waterfall(explicacao, show=False)
         fig = plt.gcf()
-        fig.axes[0].set_title(f"{ticker} — SHAP Waterfall (Pregão de {data_amostra})", loc="left",
-                              fontsize=14, fontweight="bold", color=COR_MARINHO, pad=14)
+        _titulo(fig, f"{ticker} — SHAP Waterfall (Pregão de {data_amostra})")
         figuras.append(("shap_waterfall.png", f"SHAP — Waterfall ({data_amostra})", _para_png(fig)))
 
         # 4. LIME da mesma amostra
         df_lime = pd.DataFrame(pesos_lime, columns=["Condição", "Peso"]).iloc[::-1]
+        df_lime["Condição"] = df_lime["Condição"].map(formatar_condicao_lime)
         fig, ax = _nova_figura()
         cores = [COR_VERMELHO if p >= 0 else COR_MARINHO for p in df_lime["Peso"]]
         ax.barh(df_lime["Condição"], df_lime["Peso"], color=cores, height=0.6)
