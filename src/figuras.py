@@ -21,6 +21,8 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.text import Text
+from matplotlib.ticker import FixedFormatter, FuncFormatter, ScalarFormatter
 import pandas as pd
 import shap
 from scipy import stats
@@ -56,13 +58,63 @@ def _titulo(fig, texto: str) -> None:
     fig.suptitle(texto, x=0.015, y=0.975, ha="left", va="top", fontsize=14, fontweight="bold", color=COR_MARINHO)
 
 
-def formatar_condicao_lime(condicao: str) -> str:
-    """Números >= 1000 nas condições do LIME com separador de milhar brasileiro (ex.: 22.568.590)."""
-    def _formatar(m: re.Match) -> str:
-        valor = float(m.group(0))
-        return f"{valor:,.0f}".replace(",", ".") if abs(valor) >= 1000 else m.group(0)
+# Número isolado (não colado a letras/sublinhado, para não afetar "MM_20d" ou "PETR4.SA")
+_REGEX_NUMERO = re.compile(r"(?<![\w.])(\d+)(?:\.(\d+))?(?![\w])")
 
-    return re.sub(r"-?\d+(?:\.\d+)?", _formatar, condicao)
+
+def numero_brasileiro(texto: str) -> str:
+    """
+    Converte os números de um texto para o padrão brasileiro: vírgula decimal e ponto
+    no milhar. O milhar só é agrupado a partir de 5 dígitos, preservando anos (2024)
+    e datas (20/10/2026).
+    """
+    # Em fórmulas do Matplotlib ($...$) a vírgula comum ganha espaço depois; "{,}" não
+    virgula = "{,}" if "$" in texto else ","
+
+    def _converter(m: re.Match) -> str:
+        inteiro, decimais = m.group(1), m.group(2)
+        if len(inteiro) >= 5:
+            inteiro = f"{int(inteiro):,}".replace(",", ".")
+        return f"{inteiro}{virgula}{decimais}" if decimais is not None else inteiro
+
+    return _REGEX_NUMERO.sub(_converter, texto)
+
+
+def formatar_condicao_lime(condicao: str) -> str:
+    """Condição do LIME no padrão brasileiro; valores grandes sem casas decimais (ex.: 22.568.590)."""
+    def _arredondar(m: re.Match) -> str:
+        valor = float(m.group(0))
+        return f"{valor:.0f}" if abs(valor) >= 1000 else m.group(0)
+
+    return numero_brasileiro(re.sub(r"\d+\.\d+", _arredondar, condicao))
+
+
+class _FormatadorBrasileiro(ScalarFormatter):
+    """Rótulos de eixo numéricos com vírgula decimal (mantém a escolha de casas do Matplotlib)."""
+
+    def __call__(self, x, pos=None):
+        return numero_brasileiro(super().__call__(x, pos))
+
+
+def _aplicar_padrao_brasileiro(fig) -> None:
+    """Eixos numéricos e textos da figura (rótulos, anotações, valores do SHAP) no padrão brasileiro."""
+    for ax in fig.axes:
+        for eixo in (ax.xaxis, ax.yaxis):
+            formatador = eixo.get_major_formatter()
+            # Eixos numéricos lineares; datas e escalas log ficam como estão
+            if type(formatador) is ScalarFormatter:
+                eixo.set_major_formatter(_FormatadorBrasileiro())
+            # Rótulos definidos como texto (ex.: "0.303 = Volatilidade_21d" e "f(x) = 0.273"
+            # do waterfall SHAP): a saída do formatador original passa pela conversão
+            # Eixos sobrepostos (twinx/twiny) compartilham o formatador: a marca evita converter duas vezes
+            elif isinstance(formatador, (FuncFormatter, FixedFormatter)) and not getattr(formatador, "_brasileiro", False):
+                novo = FuncFormatter(lambda x, pos, original=formatador: numero_brasileiro(original(x, pos)))
+                novo._brasileiro = True
+                eixo.set_major_formatter(novo)
+    for texto in fig.findobj(Text):
+        conteudo = texto.get_text()
+        if conteudo:
+            texto.set_text(numero_brasileiro(conteudo))
 
 
 def _estilizar(ax, titulo: str, rotulo_x: str = "", rotulo_y: str = "") -> None:
@@ -83,6 +135,7 @@ def _estilizar(ax, titulo: str, rotulo_x: str = "", rotulo_y: str = "") -> None:
 def _para_png(fig) -> bytes:
     """Fixa o tamanho padrão, salva a figura em PNG e libera a memória."""
     fig.set_size_inches(*TAMANHO_FIGURA)
+    _aplicar_padrao_brasileiro(fig)
     # Reserva a faixa superior para o título da figura e mantém margem nas bordas
     fig.tight_layout(rect=(0.01, 0.01, 0.99, 0.92))
     buffer = io.BytesIO()

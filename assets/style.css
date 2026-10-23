@@ -91,6 +91,55 @@ h4 {
     box-shadow: none !important;
 }
 
+/* Painéis lado a lado com a mesma altura (st.container(key="pares_...") envolvendo as colunas):
+   cada nível entre a coluna e o painel da seção passa a ocupar toda a altura disponível */
+[class*="st-key-pares"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    display: flex;
+    flex-direction: column;
+    /* Painéis com gráficos precisam de mais largura: abaixo disso, descem para a linha seguinte */
+    min-width: 340px;
+}
+
+[class*="st-key-pares"] [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+[class*="st-key-pares"] [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] {
+    flex: 1 1 auto;
+}
+
+[class*="st-key-pares"] [class*="st-key-secao"] {
+    flex: 1 1 auto;
+    height: 100%;
+}
+
+/* Linhas de cards KPI (linha("kpi_...")): todos os cards da linha com altura idêntica.
+   Cada nível entre a coluna e o .kpi-card vira coluna flexível e ocupa a altura disponível */
+[class*="st-key-linha_kpi"] [data-testid="stColumn"],
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stVerticalBlock"],
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stElementContainer"],
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stMarkdown"],
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stMarkdown"] > div,
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stMarkdownContainer"] {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+}
+
+[class*="st-key-linha_kpi"] .kpi-card,
+[class*="st-key-linha_kpi"] [data-testid="stMetric"] {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+}
+
+/* Uma linha que fecha um painel de seção não soma margem ao padding do painel */
+[class*="st-key-secao"] [class*="st-key-linha"]:last-child {
+    margin-bottom: 0;
+}
+
+/* O Streamlit aplica margem inferior negativa ao markdown; nos cards ela fazia o card
+   ultrapassar a coluna e reduzir o espaço até a seção seguinte */
+[class*="st-key-linha_kpi"] [data-testid="stColumn"] [data-testid="stMarkdownContainer"] {
+    margin-bottom: 0 !important;
+}
+
 /* Agrupamentos sem borda (linhas de KPIs, avisos, introduções) */
 [class*="st-key-linha"] {
     margin-bottom: var(--espaco-secao);
