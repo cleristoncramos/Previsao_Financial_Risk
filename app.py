@@ -72,6 +72,7 @@ from src.model_store import (
 )
 from src.models import treinar_todos_modelos
 from src.preprocessing import DatasetModelagem, preparar_dados_modelagem
+from src.report import dados_para_csv, metricas_para_csv, montar_texto_relatorio
 
 # =============================================================================
 # CONFIGURAÇÃO GERAL DA PÁGINA STREAMLIT
@@ -1398,17 +1399,37 @@ with aba_simulador:
 with aba_relatorios:
     st.markdown("### Relatório Executivo e Exportação de Artefatos")
 
-    # Exibição do Relatório em Texto
-    caminho_rel = FIGURES_DIR / "relatorio_final_modelos.txt"
-    if caminho_rel.exists():
-        with open(caminho_rel, "r", encoding="utf-8") as f:
-            conteudo_rel = f.read()
-
-        with secao("relatorio"):
-            st.markdown("#### 1. Relatório Consolidado de Desempenho")
+    # Relatório e arquivos montados na hora para o ativo selecionado, com as mesmas métricas
+    # da aba Desempenho dos Modelos (df_metricas), a data e hora da exibição e o período real da série
+    momento_relatorio = datetime.now()
+    prefixo_ativo = ticker_selecionado.replace("^", "").replace(".", "_")
+    carimbo_arquivo = f"{prefixo_ativo}_{momento_relatorio:%Y%m%d_%H%M}"
+    with secao("relatorio"):
+        st.markdown("#### 1. Relatório Consolidado de Desempenho")
+        if tem_modelos:
+            conteudo_rel = montar_texto_relatorio(
+                df_metricas,
+                ticker_ref=ticker_selecionado,
+                data_inicio=df_ativo["Data"].min(),
+                data_fim=df_ativo["Data"].max(),
+                n_train=len(dataset.X_train),
+                n_test=len(dataset.X_test),
+                gerado_em=momento_relatorio,
+                periodo_teste=(dataset.datas_test[0], dataset.datas_test[-1]),
+                nome_ativo=nome_ativo_selecionado,
+                periodo_treino=(dataset.datas_train[0], dataset.datas_train[-1]),
+                folds=validacao_cruzada_cached(ticker_selecionado, str(df_ativo["Data"].max().date()), dataset),
+            )
             st.code(conteudo_rel, language="text")
-    else:
-        conteudo_rel = "Relatório ainda não gerado."
+            st.caption(
+                "Relatório gerado no momento da exibição, a partir da série e dos modelos atuais do ativo selecionado."
+            )
+        else:
+            conteudo_rel = ""
+            st.info(
+                f"Treine os modelos de {ticker_selecionado} na aba **Desempenho dos Modelos** "
+                "para gerar o relatório consolidado deste ativo."
+            )
 
     with secao("downloads"):
         st.markdown("#### 2. Download Centralizado de Arquivos do Projeto")
@@ -1419,35 +1440,40 @@ with aba_relatorios:
             st.download_button(
                 label="Baixar Relatório Final (.txt)",
                 data=conteudo_rel,
-                file_name="relatorio_final_modelos.txt",
+                file_name=f"relatorio_desempenho_{carimbo_arquivo}.txt",
                 mime="text/plain",
+                disabled=not conteudo_rel,
                 use_container_width=True,
             )
+            st.caption("Relatório da seção 1: dados, desempenho, comparação com o benchmark, validação cruzada e conclusão.")
 
         with col_dl2:
-            caminho_csv = FIGURES_DIR / "metricas_modelos.csv"
-            if caminho_csv.exists():
-                with open(caminho_csv, "rb") as f:
-                    csv_bytes = f.read()
+            if tem_modelos:
                 st.download_button(
                     label="Baixar Tabela de Métricas (.csv)",
-                    data=csv_bytes,
-                    file_name="metricas_modelos.csv",
+                    data=metricas_para_csv(df_metricas, ticker_selecionado, momento_relatorio),
+                    file_name=f"metricas_modelos_{carimbo_arquivo}.csv",
                     mime="text/csv",
                     use_container_width=True,
                 )
             else:
                 st.button("Tabela CSV Indisponível", disabled=True, use_container_width=True)
+            st.caption("Uma linha por modelo, ordenada por RMSE, com RMSE, MAE, R² e classificação.")
 
         with col_dl3:
-            csv_ativo = df_ativo.to_csv(index=False).encode("utf-8-sig")
             st.download_button(
                 label=f"Baixar Dados de {ticker_selecionado} (.csv)",
-                data=csv_ativo,
-                file_name=f"dados_enriquecidos_{ticker_selecionado}.csv",
+                data=dados_para_csv(df_ativo),
+                file_name=f"dados_{carimbo_arquivo}.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
+            st.caption("Série diária com preços, volume, indicadores calculados e a volatilidade t+1 (alvo).")
+
+        st.caption(
+            "Os arquivos CSV usam o padrão do Excel em português: ponto e vírgula entre colunas, "
+            "vírgula decimal e datas dd/mm/aaaa."
+        )
 
     # Catálogo de figuras do ativo selecionado, geradas em memória a partir dos dados e modelos atuais
     with secao("catalogo"):
