@@ -23,20 +23,34 @@ O código foi totalmente modularizado seguindo as melhores práticas de engenhar
 
 ```text
 tcc/
+├── app.py                     # Ponto de entrada do Streamlit: estilo e navegação entre as páginas
+├── paginas/
+│   ├── inicio.py              # Página inicial (rota "/"): apresentação, tutorial e informações acadêmicas
+│   └── painel.py              # Painel de análise (rota "/painel"): EDA, modelos, XAI, VaR e relatórios
+├── assets/
+│   ├── style.css              # Estilo visual do painel e da página inicial
+│   ├── ativos/                # Logotipos dos ativos (fontes e licenças em FONTES.md)
+│   └── video/                 # Vídeo curto de apresentação exibido na página inicial
+├── scripts/
+│   └── gerar_video_apresentacao.py # Gera o vídeo de apresentação a partir dos dados reais
+├── .streamlit/config.toml     # Tema do Streamlit (claro, sem cantos arredondados)
 ├── dados_coletados/           # Diretório com os dados brutos e enriquecidos em CSV
 │   ├── acoes_br/              # Séries temporais das ações da B3
 │   └── indices/               # Séries temporais do IBOVESPA e S&P 500
-├── relatorios_graficos/       # Gráficos (HTML interativo e PNG) e relatórios salvos
+├── modelos_salvos/            # Modelos treinados e scaler (ativo de referência na raiz; demais em por_ativo/)
+├── relatorios_graficos/       # Gráficos (HTML interativo e PNG) e relatórios salvos pelo pipeline
 ├── src/                       # Pacote de módulos em Python
 │   ├── __init__.py            # Inicializador do pacote
-│   ├── config.py              # Parâmetros globais, tickers, hiperparâmetros e caminhos
+│   ├── config.py              # Parâmetros globais, tickers, hiperparâmetros, caminhos e fuso horário
 │   ├── data_collection.py     # Coleta via Yahoo Finance e cálculo de indicadores técnicos
 │   ├── eda.py                 # Análise Exploratória de Dados (EDA) e gráficos estatísticos
 │   ├── preprocessing.py       # Preparação de target (t+1), split temporal e padronização
 │   ├── models.py              # Definição e treinamento de XGBoost, LightGBM e MLP (Keras)
+│   ├── model_store.py         # Persistência e carregamento dos modelos por ativo
 │   ├── evaluation.py          # Métricas (RMSE, MAE, R²), TimeSeriesSplit e curvas de treino
 │   ├── interpretability.py    # Explicabilidade dos modelos com SHAP e LIME (XAI)
-│   └── report.py              # Formatação e persistência do relatório comparativo final
+│   ├── figuras.py             # Catálogo de figuras PNG geradas para o ativo selecionado
+│   └── report.py              # Relatório consolidado e exportação dos arquivos CSV
 ├── main.py                    # Script principal orquestrador do pipeline (CLI)
 ├── requirements.txt           # Dependências e bibliotecas do projeto
 ├── README.md                  # Apresentação e guia rápido do projeto

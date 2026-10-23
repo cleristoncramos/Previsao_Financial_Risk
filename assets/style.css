@@ -435,6 +435,23 @@ h4 {
     box-shadow: none !important;
 }
 
+/* O texto do botão herda a cor do próprio botão (a regra geral de parágrafos não se aplica) */
+.stButton [data-testid="stMarkdownContainer"] p,
+.stDownloadButton [data-testid="stMarkdownContainer"] p,
+[data-testid="stPageLink"] [data-testid="stMarkdownContainer"] p {
+    color: inherit !important;
+}
+
+.stButton > button[kind="primary"] {
+    color: #ffffff !important;
+    padding: 0.6rem 1.4rem;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: var(--cor-marinho-escuro) !important;
+    color: #ffffff !important;
+}
+
 .stButton > button:hover,
 .stDownloadButton > button:hover {
     border-color: var(--cor-marinho) !important;
@@ -510,48 +527,295 @@ h4 {
     border-bottom: 1px solid var(--cor-borda-suave);
 }
 
-.sidebar-marca {
-    border: 1px solid var(--cor-borda);
-    border-left: 6px solid var(--cor-marinho);
-    padding: 0.9rem 1rem;
-    margin-bottom: 1.75rem;
+/* Ícone de início no topo da barra lateral: discreto, funciona como "sair" do painel */
+[data-testid="stSidebar"] [data-testid="stPageLink"] {
+    margin-bottom: 1.5rem;
 }
 
-.sidebar-marca-selo {
-    font-size: 0.72rem;
+[data-testid="stSidebar"] [data-testid="stPageLink"] a {
+    border: 1px solid var(--cor-borda-suave);
+    padding: 0.3rem 0.7rem;
+    width: fit-content;
+}
+
+[data-testid="stSidebar"] [data-testid="stPageLink"] a:hover {
+    border-color: var(--cor-marinho);
+    background: #eef2fb;
+}
+
+[data-testid="stSidebar"] [data-testid="stPageLink"] p {
+    font-size: 0.82rem;
+    color: var(--cor-texto-suave);
+}
+
+/* --------------------------------------------------------------
+   Página inicial (landing page)
+   -------------------------------------------------------------- */
+.landing-marca {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--cor-marinho-escuro);
+    border-left: 4px solid var(--cor-marinho);
+    padding-left: 0.7rem;
+}
+
+[class*="st-key-landing_hero"] {
+    background: var(--cor-painel);
+    border: 1px solid var(--cor-borda) !important;
+    border-left: 8px solid var(--cor-marinho) !important;
+    padding: 2.75rem 2.75rem !important;
+    margin: 1.5rem 0 2rem 0;
+}
+
+.landing-selo {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cor-marinho);
+    border: 1px solid var(--cor-marinho);
+    background: #eef2fb;
+    padding: 0.3rem 0.7rem;
+    margin-bottom: 1.1rem;
+}
+
+h1.landing-titulo {
+    font-size: 2.7rem !important;
+    font-weight: 800 !important;
+    line-height: 1.12 !important;
+    letter-spacing: -0.02em;
+    color: var(--cor-marinho-escuro) !important;
+    margin: 0 0 1.1rem 0 !important;
+    padding: 0 !important;
+}
+
+.landing-subtitulo {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--cor-texto-suave) !important;
+    max-width: 54ch;
+    margin-bottom: 1.6rem;
+}
+
+.landing-nota {
+    font-size: 0.8rem;
+    color: var(--cor-texto-suave) !important;
+    margin-top: 0.4rem;
+}
+
+.landing-video-rotulo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cor-texto-suave);
+    margin-bottom: 0.5rem;
+}
+
+/* Em telas estreitas, o vídeo desce para baixo do texto */
+[class*="st-key-landing_hero"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    min-width: 340px;
+}
+
+[class*="st-key-landing_hero"] [data-testid="stImage"] img {
+    border: 1px solid var(--cor-borda);
+}
+
+/* Números do projeto */
+.landing-numeros {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: var(--cor-painel);
+    border: 1px solid var(--cor-borda);
+    margin-bottom: 2rem;
+}
+
+.landing-numeros > div {
+    padding: 1.3rem 1.4rem;
+    border-right: 1px solid var(--cor-borda-suave);
+}
+
+.landing-numeros > div:last-child {
+    border-right: none;
+}
+
+.landing-numeros strong {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.45rem;
+    color: var(--cor-marinho);
+    margin-bottom: 0.3rem;
+}
+
+.landing-numeros span {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--cor-texto-suave);
+}
+
+/* Seções: tutorial e primeiros passos */
+.landing-secao {
+    background: var(--cor-painel);
+    border: 1px solid var(--cor-borda);
+    padding: 2rem 2.25rem;
+    margin-bottom: 2rem;
+}
+
+.landing-secao-rotulo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cor-marinho);
+    margin-bottom: 0.35rem;
+}
+
+.landing-secao h2 {
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
+    color: var(--cor-marinho-escuro) !important;
+    padding: 0 0 1.25rem 0 !important;
+    margin: 0 !important;
+}
+
+.landing-grade {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.landing-cartao {
+    border: 1px solid var(--cor-borda-suave);
+    border-top: 3px solid var(--cor-marinho);
+    background: #fbfbfc;
+    padding: 1.25rem 1.3rem;
+}
+
+.landing-cartao-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cor-marinho);
+    margin-bottom: 0.5rem;
+}
+
+.landing-cartao h3 {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: var(--cor-texto) !important;
+    padding: 0 0 0.45rem 0 !important;
+    margin: 0 !important;
+}
+
+.landing-cartao p {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--cor-texto-suave) !important;
+    margin: 0;
+}
+
+.landing-passos {
+    list-style: none;
+    counter-reset: passo;
+    padding: 0;
+    margin: 0;
+}
+
+.landing-passos li {
+    counter-increment: passo;
+    position: relative;
+    padding: 0.9rem 0 0.9rem 3rem;
+    min-height: 1.9rem;
+    border-bottom: 1px solid var(--cor-borda-suave);
+    line-height: 1.6;
+}
+
+.landing-passos li:last-child {
+    border-bottom: none;
+}
+
+.landing-passos li::before {
+    content: counter(passo);
+    position: absolute;
+    left: 0;
+    top: 0.75rem;
+    width: 1.9rem;
+    height: 1.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #ffffff;
+    background: var(--cor-marinho);
+}
+
+/* Chamada final */
+[class*="st-key-landing_cta"] {
+    background: #eef2fb;
+    border: 1px solid var(--cor-marinho);
+    padding: 1.6rem 2rem;
+    margin-bottom: 2rem;
+}
+
+.landing-cta-texto {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--cor-marinho-escuro);
+}
+
+@media (max-width: 900px) {
+    .landing-numeros,
+    .landing-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    h1.landing-titulo {
+        font-size: 2rem !important;
+    }
+}
+
+/* Janela de informações acadêmicas */
+.info-academica-tipo {
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--cor-marinho);
 }
 
-.sidebar-marca-curso {
-    font-size: 1.05rem;
+.info-academica-titulo {
+    font-size: 1.3rem;
     font-weight: 700;
+    line-height: 1.35;
+    color: var(--cor-marinho-escuro);
+    padding: 0.4rem 0 1.2rem 0;
+    margin-bottom: 0.4rem;
+    border-bottom: 2px solid var(--cor-marinho);
+}
+
+.info-academica table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.info-academica th,
+.info-academica td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.65rem 0.4rem;
+    border-bottom: 1px solid var(--cor-borda-suave);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.info-academica th {
+    width: 28%;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+}
+
+.info-academica td {
     color: var(--cor-texto);
-    margin: 0.25rem 0 0.15rem 0;
-}
-
-.sidebar-marca-tema {
-    font-size: 0.85rem;
-    color: var(--cor-texto-suave);
-}
-
-.sidebar-autoria {
-    font-size: 0.82rem;
-    color: var(--cor-texto-suave);
-    line-height: 1.7;
-}
-
-/* --------------------------------------------------------------
-   Rodapé Acadêmico
-   -------------------------------------------------------------- */
-.academic-footer {
-    text-align: center;
-    color: var(--cor-texto-suave);
-    font-size: 0.85rem;
-    line-height: 1.7;
-    padding: 1.5rem 1rem;
-    border-top: 1px solid var(--cor-borda);
-    margin-top: 1rem;
 }
