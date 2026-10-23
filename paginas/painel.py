@@ -849,10 +849,12 @@ with aba_modelos:
                         f"em relação ao Baseline Ingênuo de persistência ({formatar_numero(rmse_baseline, 5)})."
                     )
                 else:
+                    # -ganho_pct = (RMSE do modelo - RMSE do baseline) / RMSE do baseline: quanto o modelo ficou acima
                     st.warning(
-                        f"O **Baseline Ingênuo de persistência** (σₜ₊₁ = σₜ) obteve RMSE de **{formatar_numero(rmse_baseline, 5)}**, "
-                        f"**{formatar_numero(-ganho_pct, 1)}% menor** que o melhor modelo de ML ({melhor_ml['Modelo']}, "
-                        f"{formatar_numero(melhor_ml['RMSE'], 5)}). Neste conjunto de teste, os modelos de ML não superaram a regra de "
+                        f"O **Baseline Ingênuo de persistência** (σₜ₊₁ = σₜ) obteve o menor erro, com RMSE de "
+                        f"**{formatar_numero(rmse_baseline, 5)}**. O RMSE do melhor modelo de ML ({melhor_ml['Modelo']}, "
+                        f"{formatar_numero(melhor_ml['RMSE'], 5)}) ficou **{formatar_numero(-ganho_pct, 1)}% acima** do baseline. "
+                        "Neste conjunto de teste, os modelos de ML não superaram a regra de "
                         "persistência, o que é coerente com a forte autocorrelação da volatilidade em janela móvel de "
                         "21 dias (de um pregão para o seguinte, 20 dos 21 retornos da janela se repetem)."
                     )

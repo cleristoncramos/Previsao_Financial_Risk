@@ -144,11 +144,12 @@ def montar_texto_relatorio(
             f"  Melhor modelo ML      : {melhor_ml['Modelo']} (RMSE = {_numero_br(melhor_ml['RMSE'], 5)})",
             f"  Baseline (σt+1 = σt)  : RMSE = {_numero_br(rmse_baseline, 5)}",
         ]
+        # ganho = (RMSE do baseline - RMSE do modelo) / RMSE do baseline, em %
         if ganho > 0:
-            linhas.append(f"  Resultado             : RMSE {_numero_br(ganho, 1)}% menor que o do baseline.")
+            linhas.append(f"  Resultado             : RMSE do modelo {_numero_br(ganho, 1)}% abaixo do baseline.")
         else:
             linhas.append(
-                f"  Resultado             : baseline com RMSE {_numero_br(-ganho, 1)}% menor que o melhor ML."
+                f"  Resultado             : RMSE do modelo {_numero_br(-ganho, 1)}% acima do baseline."
             )
 
     # 4. Validação cruzada temporal
