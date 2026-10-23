@@ -7,6 +7,7 @@ tutorial breve, primeiros passos e as informações acadêmicas do TCC
 =============================================================================
 """
 
+import base64
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from src.config import ATIVOS, TICKER_REF
 from src.data_collection import carregar_ativo_local
 
 VIDEO_APRESENTACAO = BASE_DIR / "assets" / "video" / "apresentacao.gif"
+LOGOS_INSTITUCIONAIS = BASE_DIR / "assets" / "institucional"
 
 
 @st.cache_data(show_spinner=False)
@@ -33,21 +35,34 @@ def periodo_da_serie() -> tuple:
     return datas.min().year, datas.max().year
 
 
-@st.dialog("Informações acadêmicas", width="large")
+def logo_institucional_html(nome: str, descricao: str) -> str:
+    """Logotipo institucional (assets/institucional/<nome>.png|.svg) embutido em base64, se existir."""
+    for extensao, tipo in ((".png", "image/png"), (".svg", "image/svg+xml"), (".jpg", "image/jpeg")):
+        caminho = LOGOS_INSTITUCIONAIS / f"{nome}{extensao}"
+        if caminho.exists():
+            conteudo = base64.b64encode(caminho.read_bytes()).decode("ascii")
+            return f'<img src="data:{tipo};base64,{conteudo}" alt="{descricao}">'
+    return ""
+
+
+@st.dialog("Informações acadêmicas", width="medium")
 def informacoes_academicas():
+    logos = logo_institucional_html("UFPI", "Logotipo da UFPI") + logo_institucional_html("CEAD", "Logotipo do CEAD")
+    cabecalho_logos = f'<div class="info-academica-logos">{logos}</div>' if logos else ""
     st.markdown(
-        """
+        f"""
         <div class="info-academica">
+            {cabecalho_logos}
             <div class="info-academica-tipo">Trabalho de Conclusão de Curso</div>
             <div class="info-academica-titulo">
                 Previsão de Riscos Financeiros com Data Science e Machine Learning
             </div>
             <table>
-                <tr><th>Autora</th><td>Lorrana Evelyn de Araújo Pereira</td></tr>
-                <tr><th>Orientador</th><td>Prof. Dr. Arlino Henrique Magalhães de Araújo</td></tr>
-                <tr><th>Curso</th><td>Curso Superior de Tecnologia em Gestão de Dados</td></tr>
-                <tr><th>Unidade</th><td>Centro de Educação Aberta e a Distância (CEAD)</td></tr>
                 <tr><th>Instituição</th><td>Universidade Federal do Piauí (UFPI)</td></tr>
+                <tr><th>Centro</th><td>Centro de Educação Aberta e a Distância (CEAD)</td></tr>
+                <tr><th>Curso</th><td>Curso Superior de Tecnologia em Gestão de Dados</td></tr>
+                <tr><th>Orientador</th><td>Prof. Dr. Arlino Henrique Magalhães de Araújo</td></tr>
+                <tr><th>Autora</th><td>Lorrana Evelyn de Araújo Pereira</td></tr>
                 <tr><th>Ano</th><td>2026</td></tr>
                 <tr><th>Metodologia</th><td>Split temporal 80/20, modelos de Machine Learning e explicabilidade (XAI)</td></tr>
                 <tr><th>Tecnologias</th><td>Python, Streamlit, Scikit-Learn, XGBoost, LightGBM, Keras, SHAP e LIME</td></tr>
@@ -65,7 +80,7 @@ def ir_para_painel():
 # =============================================================================
 # BARRA SUPERIOR: identificação do sistema e acesso discreto às informações acadêmicas
 # =============================================================================
-col_marca, col_info = st.columns([4, 1.2], vertical_alignment="center")
+col_marca, col_info = st.columns([3, 1], vertical_alignment="center")
 with col_marca:
     st.markdown(
         '<div class="landing-marca">Previsão de Riscos Financeiros</div>',
@@ -98,7 +113,7 @@ with st.container(key="landing_hero"):
         st.markdown('<p class="landing-nota">Acesso direto ao painel, sem cadastro.</p>', unsafe_allow_html=True)
 
     with col_video:
-        st.markdown('<div class="landing-video-rotulo">Apresentação em 20 segundos</div>', unsafe_allow_html=True)
+        st.markdown('<div class="landing-video-rotulo">Apresentação em 30 segundos</div>', unsafe_allow_html=True)
         if VIDEO_APRESENTACAO.exists():
             st.image(str(VIDEO_APRESENTACAO), use_container_width=True)
         else:

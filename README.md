@@ -32,6 +32,7 @@ tcc/
 │   ├── ativos/                # Logotipos dos ativos (fontes e licenças em FONTES.md)
 │   └── video/                 # Vídeo curto de apresentação exibido na página inicial
 ├── scripts/
+│   ├── rasterizar_logos.py    # Converte os logotipos em PNG (usados no vídeo)
 │   └── gerar_video_apresentacao.py # Gera o vídeo de apresentação a partir dos dados reais
 ├── .streamlit/config.toml     # Tema do Streamlit (claro, sem cantos arredondados)
 ├── dados_coletados/           # Diretório com os dados brutos e enriquecidos em CSV

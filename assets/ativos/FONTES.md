@@ -12,3 +12,6 @@ As marcas pertencem às respectivas empresas e são usadas apenas para identific
 | ITUB4 (Itaú Unibanco) | `ITUB4.svg` | [Wikimedia Commons — Itaú Unibanco logo 2023.svg](https://commons.wikimedia.org/wiki/File:Ita%C3%BA_Unibanco_logo_2023.svg) | Domínio público |
 | BBDC4 (Bradesco) | `BBDC4.png` | [Wikimedia Commons — Banco Bradesco logo (vertical).png](https://commons.wikimedia.org/wiki/File:Banco_Bradesco_logo_(vertical).png) (reduzido para 480 px de largura) | Domínio público |
 | ABEV3 (Ambev) | `ABEV3.svg` | [Wikimedia Commons — Logotipo da Ambev (2024).svg](https://commons.wikimedia.org/wiki/File:Logotipo_da_Ambev_(2024).svg) | Domínio público |
+
+A pasta `png/` contém cópias em PNG desses mesmos logotipos (fundo transparente, bordas aparadas),
+geradas por `scripts/rasterizar_logos.py` e usadas no vídeo de apresentação da página inicial.

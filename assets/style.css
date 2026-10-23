@@ -776,7 +776,52 @@ h1.landing-titulo {
     }
 }
 
+/* Botão discreto de informações acadêmicas: alinhado à direita, com respiro nas margens */
+[class*="st-key-btn_info_academica"] {
+    display: flex;
+    justify-content: flex-end;
+}
+
+[class*="st-key-btn_info_academica"] button {
+    width: auto !important;
+    white-space: nowrap;
+    padding: 0.5rem 1.15rem !important;
+    border: 1px solid var(--cor-borda-suave) !important;
+    background: var(--cor-painel);
+    gap: 0.45rem;
+}
+
+[class*="st-key-btn_info_academica"] button:hover {
+    border-color: var(--cor-marinho) !important;
+    background: #eef2fb;
+}
+
 /* Janela de informações acadêmicas */
+.info-academica-logos {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px solid var(--cor-borda-suave);
+}
+
+.info-academica-logos img {
+    width: auto;
+    object-fit: contain;
+}
+
+/* UFPI (marca com raios ao redor) maior; CEAD (marca horizontal) mais baixa, com divisor entre elas */
+.info-academica-logos img:first-child {
+    height: 86px;
+}
+
+.info-academica-logos img + img {
+    height: 50px;
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--cor-borda-suave);
+}
+
 .info-academica-tipo {
     font-size: 0.75rem;
     font-weight: 700;
