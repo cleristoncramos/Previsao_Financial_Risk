@@ -264,7 +264,7 @@ Previsao_Financial_Risk/
 ├── DOCUMENTACAO.md                 # Documentação técnica e metodológica detalhada
 ├── TCC_Previsao_Riscos_Financeiros.ipynb # Notebook de desenvolvimento
 ├── TCC- Artigo.pdf                 # Artigo do TCC
-└── tcc_previsao_riscos_financeiros.py    # Script original de referência (legado)
+└── tcc_previsao_riscos_financeiros.py    # Versão em script do notebook
 ```
 
 ---
@@ -318,6 +318,16 @@ Acesse `http://localhost:8501`. A página inicial abre na rota `/` e o painel em
 | `python main.py --nao-mostrar-graficos` | Salva os gráficos sem abrir janelas (execução automatizada) |
 | `python main.py --etapa {coleta, eda, treino, avaliar, interpretar}` | Executa apenas uma etapa |
 | `python main.py --ticker PETR4.SA` | Estuda outro ativo (modelos salvos em `modelos_salvos/por_ativo/`) |
+
+### Notebook e script passo a passo
+
+O notebook `TCC_Previsao_Riscos_Financeiros.ipynb` (também executável no Google Colab) e o script `tcc_previsao_riscos_financeiros.py` percorrem a metodologia etapa por etapa, com as mesmas funções de `src/`. Usam os CSVs do repositório e não substituem os modelos salvos.
+
+| Comando | Efeito |
+|---|---|
+| `python tcc_previsao_riscos_financeiros.py` | Executa todas as etapas e abre os gráficos |
+| `python tcc_previsao_riscos_financeiros.py --nao-mostrar-graficos` | Executa sem abrir gráficos (só a saída em texto) |
+| `python tcc_previsao_riscos_financeiros.py --baixar-dados` | Baixa as séries novamente e substitui os CSVs |
 
 ### Regenerar os recursos da página inicial
 
