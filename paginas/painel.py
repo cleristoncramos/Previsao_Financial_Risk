@@ -63,6 +63,7 @@ from src.figuras import (
     figuras_exploratorias,
     figuras_interpretabilidade,
     formatar_condicao_lime,
+    triangulo_inferior,
 )
 from src.model_store import (
     carregar_modelos_salvos,
@@ -715,19 +716,33 @@ with aba_eda:
 
             df_ret_corr = pd.DataFrame(ret_dict).dropna()
             if not df_ret_corr.empty:
-                corr_mat = df_ret_corr.corr().round(3)
-                fig_corr = px.imshow(
-                    corr_mat,
-                    text_auto=True,
-                    color_continuous_scale="RdBu_r",
-                    zmin=-1,
-                    zmax=1,
+                # Só o triângulo inferior: cada par de ativos aparece uma vez, sem a diagonal (sempre 1)
+                corr_mat = triangulo_inferior(df_ret_corr.corr())
+                textos = corr_mat.map(lambda v: "" if pd.isna(v) else formatar_numero(v, 2))
+                fig_corr = go.Figure(
+                    go.Heatmap(
+                        z=corr_mat.values,
+                        x=list(corr_mat.columns),
+                        y=list(corr_mat.index),
+                        text=textos.values,
+                        texttemplate="%{text}",
+                        textfont=dict(size=12),
+                        colorscale="RdBu_r",
+                        zmin=-1,
+                        zmax=1,
+                        hoverongaps=False,
+                        hovertemplate="%{y} × %{x}<br>Correlação: %{z:.3f}<extra></extra>",
+                        colorbar=dict(thickness=12, outlinewidth=0),
+                    )
+                )
+                fig_corr.update_layout(
                     title="Correlação dos Retornos Diários (Ativos B3 + S&P 500)",
                     height=500,
+                    margin=dict(b=40),
                 )
+                # Primeira linha no topo, como numa tabela
+                fig_corr.update_yaxes(autorange="reversed", showline=False, ticks="", showgrid=False)
                 fig_corr.update_xaxes(showline=False, ticks="", showgrid=False)
-                fig_corr.update_yaxes(showline=False, ticks="", showgrid=False)
-                fig_corr.update_layout(margin=dict(b=40))
                 exibir_grafico(fig_corr)
 
 

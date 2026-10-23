@@ -117,6 +117,16 @@ def _aplicar_padrao_brasileiro(fig) -> None:
             texto.set_text(numero_brasileiro(conteudo))
 
 
+def triangulo_inferior(corr: pd.DataFrame) -> pd.DataFrame:
+    """
+    Mantém só o triângulo inferior da matriz de correlação, sem a diagonal: cada par de
+    ativos aparece uma única vez e a autocorrelação (sempre 1) é omitida. A primeira linha
+    e a última coluna, que ficariam vazias, são removidas.
+    """
+    sem_repeticao = corr.where(np.tril(np.ones(corr.shape, dtype=bool), k=-1))
+    return sem_repeticao.iloc[1:, :-1]
+
+
 def _estilizar(ax, titulo: str, rotulo_x: str = "", rotulo_y: str = "") -> None:
     """Aplica o padrão visual do painel: fundo branco, grade discreta e eixos finos."""
     _titulo(ax.figure, titulo)
@@ -192,18 +202,20 @@ def figuras_exploratorias(
         _legenda(ax)
         figuras.append(("eda_qq_plot.png", "Q-Q Plot de Normalidade", _para_png(fig)))
 
-        # 5. Matriz de correlação entre os ativos monitorados
+        # 5. Matriz de correlação entre os ativos monitorados (só o triângulo inferior)
         df_ret = pd.DataFrame(retornos_ativos).dropna()
         if not df_ret.empty:
-            corr = df_ret.corr()
+            corr = triangulo_inferior(df_ret.corr())
             fig, ax = _nova_figura()
             # aspect="auto" faz o mapa ocupar a largura da figura (sem faixa vazia à esquerda)
-            mapa = ax.imshow(corr.values, cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
-            ax.set_xticks(range(len(corr)), corr.columns, rotation=0, fontsize=10)
-            ax.set_yticks(range(len(corr)), corr.index, fontsize=10)
-            for i in range(len(corr)):
-                for j in range(len(corr)):
+            mapa = ax.imshow(np.ma.masked_invalid(corr.values), cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
+            ax.set_xticks(range(corr.shape[1]), corr.columns, rotation=0, fontsize=10)
+            ax.set_yticks(range(corr.shape[0]), corr.index, fontsize=10)
+            for i in range(corr.shape[0]):
+                for j in range(corr.shape[1]):
                     valor = corr.values[i, j]
+                    if np.isnan(valor):
+                        continue
                     ax.text(j, i, f"{valor:.2f}", ha="center", va="center", fontsize=9,
                             color="white" if abs(valor) > 0.6 else COR_TEXTO)
             fig.colorbar(mapa, ax=ax, fraction=0.035, pad=0.02)
