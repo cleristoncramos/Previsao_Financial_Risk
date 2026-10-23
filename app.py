@@ -57,6 +57,7 @@ from src.evaluation import (
     calcular_metricas,
     validacao_cruzada_temporal,
 )
+from src.figuras import figuras_avaliacao, figuras_exploratorias, figuras_interpretabilidade
 from src.model_store import (
     carregar_modelos_salvos,
     modelos_existem,
@@ -188,6 +189,27 @@ def lime_cached(ticker: str, versao_modelo: str, idx: int, _explicador, _modelo,
         num_features=len(_x_bruto),
     )
     return exp.as_list()
+
+
+@st.cache_data(show_spinner="Gerando figuras exploratórias do ativo...")
+def figuras_exploratorias_cached(ticker: str, ultima_data: str, _df: pd.DataFrame, _retornos: Dict[str, pd.Series]):
+    """Figuras PNG da EDA do ativo; o cache é indexado por ticker e data final da série."""
+    return figuras_exploratorias(_df, ticker, _retornos)
+
+
+@st.cache_data(show_spinner="Gerando figuras de avaliação dos modelos...")
+def figuras_avaliacao_cached(ticker: str, ultima_data: str, versao_modelo: str, _datas, _y, _predicoes, _folds, _historico):
+    """Figuras PNG de desempenho; o cache é indexado por ticker, série e versão do modelo."""
+    return figuras_avaliacao(ticker, _datas, _y, _predicoes, _folds, _historico)
+
+
+@st.cache_data(show_spinner="Gerando figuras SHAP e LIME...")
+def figuras_interpretabilidade_cached(
+    ticker: str, ultima_data: str, versao_modelo: str,
+    _shap, _base, _X_scaled, _X, _features, _idx, _data, _lime,
+):
+    """Figuras PNG de interpretabilidade; o cache é indexado por ticker, série e versão do modelo."""
+    return figuras_interpretabilidade(ticker, _shap, _base, _X_scaled, _X, _features, _idx, _data, _lime)
 
 
 # =============================================================================
@@ -1363,23 +1385,87 @@ with aba_relatorios:
                 use_container_width=True,
             )
 
-    # Catálogo de Imagens e Figuras Salvas
+    # Catálogo de figuras do ativo selecionado, geradas em memória a partir dos dados e modelos atuais
     with secao("catalogo"):
         st.markdown("#### 3. Catálogo de Figuras Geradas em Alta Resolução")
-        imagens_salvas = list(FIGURES_DIR.glob("*.png"))
-        if imagens_salvas:
-            cols_img = st.columns(3, gap="large")
-            for i, img_p in enumerate(imagens_salvas):
-                with cols_img[i % 3]:
-                    st.caption(f"**{img_p.name}**")
-                    st.image(str(img_p), use_container_width=True)
-                    with open(img_p, "rb") as f_img:
+        st.caption(
+            f"Figuras de **{ticker_selecionado}** geradas a partir da série e dos modelos atuais, "
+            "todas em PNG de 1600 × 1000 px."
+        )
+        ultima_data = str(df_ativo["Data"].max().date())
+        retornos_ativos = {
+            t.replace(".SA", "").replace("^", ""): d.set_index("Data")["Retorno_Diario"]
+            for t, d in carregar_todos_dados_cached().items()
+            if "Retorno_Diario" in d.columns
+        }
+        figuras_catalogo = list(
+            figuras_exploratorias_cached(ticker_selecionado, ultima_data, df_ativo, retornos_ativos)
+        )
+
+        if tem_modelos:
+            versao_modelo = str(meta_dict.get("data_salvamento", ""))
+            predicoes_catalogo = adicionar_baseline_ingenuo(
+                dataset.features, dataset.X_test, predizer_com_modelos(modelos_dict, X_test_scaled)
+            )
+            figuras_catalogo += figuras_avaliacao_cached(
+                ticker_selecionado,
+                ultima_data,
+                versao_modelo,
+                dataset.datas_test,
+                dataset.y_test,
+                predicoes_catalogo,
+                validacao_cruzada_cached(ticker_selecionado, ultima_data, dataset),
+                meta_dict.get("historico_nn"),
+            )
+            if "XGBoost" in modelos_dict:
+                # Amostra de referência do pipeline (índice 10 do conjunto de teste)
+                idx_ref = min(10, len(dataset.X_test) - 1)
+                valores_shap_cat, base_shap_cat = shap_cached(
+                    ticker_selecionado, versao_modelo, modelos_dict["XGBoost"], X_test_scaled
+                )
+                pesos_lime_cat = lime_cached(
+                    ticker_selecionado,
+                    versao_modelo,
+                    idx_ref,
+                    explicador_lime_cached(ticker_selecionado, versao_modelo, dataset.X_train, tuple(dataset.features)),
+                    modelos_dict["XGBoost"],
+                    scaler_salvo,
+                    dataset.X_test[idx_ref],
+                )
+                figuras_catalogo += figuras_interpretabilidade_cached(
+                    ticker_selecionado,
+                    ultima_data,
+                    versao_modelo,
+                    valores_shap_cat,
+                    base_shap_cat,
+                    X_test_scaled,
+                    dataset.X_test,
+                    list(dataset.features),
+                    idx_ref,
+                    pd.Timestamp(dataset.datas_test[idx_ref]).strftime("%d/%m/%Y"),
+                    pesos_lime_cat,
+                )
+        else:
+            st.info(
+                f"Treine os modelos de {ticker_selecionado} na aba **Desempenho dos Modelos** para incluir "
+                "as figuras de avaliação e interpretabilidade no catálogo."
+            )
+
+        # Grade de 3 colunas montada linha a linha: as figuras de uma mesma linha ficam alinhadas
+        prefixo_arquivo = ticker_selecionado.replace("^", "").replace(".", "_")
+        for inicio in range(0, len(figuras_catalogo), 3):
+            with linha(f"catalogo_{inicio}"):
+                colunas_fig = st.columns(3, gap="large")
+                for coluna, (arquivo, titulo, png) in zip(colunas_fig, figuras_catalogo[inicio:inicio + 3]):
+                    with coluna:
+                        st.markdown(f'<div class="catalogo-titulo">{titulo}</div>', unsafe_allow_html=True)
+                        st.image(png, use_container_width=True)
                         st.download_button(
-                            label=f"Baixar {img_p.name}",
-                            data=f_img.read(),
-                            file_name=img_p.name,
+                            label="Baixar PNG",
+                            data=png,
+                            file_name=f"{prefixo_arquivo}_{arquivo}",
                             mime="image/png",
-                            key=f"dl_img_{i}",
+                            key=f"dl_fig_{arquivo}",
                             use_container_width=True,
                         )
 

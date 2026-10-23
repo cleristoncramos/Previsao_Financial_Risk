@@ -392,6 +392,27 @@ h4 {
     border: 1px solid var(--cor-borda-suave);
 }
 
+/* Catálogo de figuras: títulos com a mesma altura para alinhar as imagens de cada linha */
+.catalogo-titulo {
+    min-height: 2.8em;
+    display: flex;
+    align-items: flex-end;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--cor-texto);
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--cor-marinho);
+    margin-bottom: 0.6rem;
+}
+
+[class*="st-key-linha_catalogo"] [data-testid="stImage"] img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: contain;
+    background: #ffffff;
+}
+
 /* --------------------------------------------------------------
    Barra lateral
    -------------------------------------------------------------- */
