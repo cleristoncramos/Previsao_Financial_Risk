@@ -45,6 +45,7 @@ from src.config import (
     DATA_INICIO,
     FIGURES_DIR,
     RANDOM_STATE,
+    agora_brasilia,
 )
 from src.data_collection import (
     baixar_ativo,
@@ -370,7 +371,7 @@ with st.sidebar:
     # Botão de Ação: Atualizar Dados (novo download no Yahoo Finance e regravação dos CSVs)
     if st.button("Atualizar Séries Temporais", use_container_width=True):
         # O parâmetro end do yfinance é exclusivo: amanhã garante a inclusão do pregão de hoje
-        fim_coleta = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        fim_coleta = (agora_brasilia() + timedelta(days=1)).strftime("%Y-%m-%d")
         with st.spinner("Baixando séries atualizadas do Yahoo Finance..."):
             dados_novos = coletar_todos_ativos(fim=fim_coleta)
         st.cache_data.clear()
@@ -1401,7 +1402,7 @@ with aba_relatorios:
 
     # Relatório e arquivos montados na hora para o ativo selecionado, com as mesmas métricas
     # da aba Desempenho dos Modelos (df_metricas), a data e hora da exibição e o período real da série
-    momento_relatorio = datetime.now()
+    momento_relatorio = agora_brasilia()
     prefixo_ativo = ticker_selecionado.replace("^", "").replace(".", "_")
     carimbo_arquivo = f"{prefixo_ativo}_{momento_relatorio:%Y%m%d_%H%M}"
     with secao("relatorio"):

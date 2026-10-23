@@ -9,7 +9,6 @@ Responsável por:
 
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,7 +16,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.config import MODELS_DIR, TICKER_REF
+from src.config import MODELS_DIR, TICKER_REF, agora_brasilia
 
 # Nomes dos arquivos de persistência
 FILE_XGB = "xgboost_model.joblib"
@@ -136,7 +135,7 @@ def salvar_modelos_treinados(
 
     metadados = {
         "ticker_ref": ticker_ref,
-        "data_salvamento": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "data_salvamento": agora_brasilia().strftime("%Y-%m-%d %H:%M:%S"),
         "features": features or [],
         "n_train": n_train,
         "n_test": n_test,

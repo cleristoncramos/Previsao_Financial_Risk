@@ -1,7 +1,22 @@
 
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+# Fuso horário oficial de Brasília. Servidores (ex.: Streamlit Cloud) costumam operar em UTC,
+# por isso todo horário exibido ou gravado pelo projeto deve vir de agora_brasilia().
+try:
+    FUSO_HORARIO = ZoneInfo("America/Sao_Paulo")
+except ZoneInfoNotFoundError:
+    # Sem base de fusos no sistema: UTC-3 fixo (o Brasil não adota horário de verão desde 2019)
+    FUSO_HORARIO = timezone(timedelta(hours=-3), "BRT")
+
+
+def agora_brasilia() -> datetime:
+    """Data e hora atuais no fuso de São Paulo, independentemente do fuso do servidor."""
+    return datetime.now(FUSO_HORARIO)
+
 
 # Diretórios base
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,7 +37,7 @@ ATIVOS = {
 
 # Parâmetros temporais para coleta
 DATA_INICIO = "2016-01-01"
-DATA_FIM = datetime.today().strftime("%Y-%m-%d")
+DATA_FIM = agora_brasilia().strftime("%Y-%m-%d")
 INTERVALO = "1d"
 
 # Ativo de referência para o estudo preditivo principal

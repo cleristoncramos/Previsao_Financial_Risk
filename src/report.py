@@ -10,7 +10,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.config import DATA_FIM, DATA_INICIO, FIGURES_DIR, TICKER_REF
+from src.config import DATA_FIM, DATA_INICIO, FIGURES_DIR, TICKER_REF, agora_brasilia
 
 LARGURA = 80
 
@@ -81,7 +81,7 @@ def montar_texto_relatorio(
     if df_resultados.empty:
         return ""
 
-    gerado_em = gerado_em or datetime.now()
+    gerado_em = gerado_em or agora_brasilia()
     eh_baseline = df_resultados["Modelo"].str.contains("Baseline", case=False)
     modelos_ml = df_resultados[~eh_baseline]
     melhor_ml = modelos_ml.iloc[0] if not modelos_ml.empty else df_resultados.iloc[0]
@@ -186,7 +186,7 @@ def _csv_brasileiro(tabela: pd.DataFrame) -> bytes:
 
 def metricas_para_csv(df_resultados: pd.DataFrame, ticker: str, gerado_em: Optional[datetime] = None) -> bytes:
     """Tabela de métricas do ativo (uma linha por modelo, ordenada por RMSE) em CSV brasileiro."""
-    gerado_em = gerado_em or datetime.now()
+    gerado_em = gerado_em or agora_brasilia()
     tabela = pd.DataFrame(
         {
             "Ativo": ticker,
