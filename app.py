@@ -27,6 +27,8 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import seaborn as sns
 import streamlit as st
+import lime.lime_tabular
+import shap
 from scipy import stats
 from sklearn.model_selection import TimeSeriesSplit
 
@@ -41,7 +43,7 @@ from src.config import (
     DATA_FIM,
     DATA_INICIO,
     FIGURES_DIR,
-    TICKER_REF,
+    RANDOM_STATE,
 )
 from src.data_collection import (
     baixar_ativo,
@@ -151,6 +153,41 @@ def validacao_cruzada_cached(ticker: str, ultima_data: str, _dataset: DatasetMod
             "RMSE": rmses,
         }
     )
+
+
+@st.cache_data(show_spinner="Calculando valores SHAP...")
+def shap_cached(ticker: str, versao_modelo: str, _modelo, _X_test_scaled: np.ndarray) -> Tuple[np.ndarray, float]:
+    """
+    Valores SHAP (TreeExplainer) do XGBoost no conjunto de teste do ativo.
+    O cache é indexado por ticker e data de salvamento do modelo.
+    """
+    explainer = shap.TreeExplainer(_modelo)
+    valores = np.asarray(explainer.shap_values(_X_test_scaled))
+    base = explainer.expected_value
+    base = float(base[0]) if isinstance(base, (list, np.ndarray)) else float(base)
+    return valores, base
+
+
+@st.cache_resource(show_spinner=False)
+def explicador_lime_cached(ticker: str, versao_modelo: str, _X_train: np.ndarray, features: Tuple[str, ...]):
+    """Explicador LIME ajustado nos dados de treino em escala original (rótulos legíveis)."""
+    return lime.lime_tabular.LimeTabularExplainer(
+        training_data=_X_train,
+        feature_names=list(features),
+        mode="regression",
+        random_state=RANDOM_STATE,
+    )
+
+
+@st.cache_data(show_spinner="Calculando explicação LIME...")
+def lime_cached(ticker: str, versao_modelo: str, idx: int, _explicador, _modelo, _scaler, _x_bruto: np.ndarray) -> List[Tuple[str, float]]:
+    """Pesos LIME de uma amostra; o modelo recebe os dados já padronizados pelo scaler salvo."""
+    exp = _explicador.explain_instance(
+        _x_bruto,
+        lambda X: _modelo.predict(_scaler.transform(X)),
+        num_features=len(_x_bruto),
+    )
+    return exp.as_list()
 
 
 # =============================================================================
@@ -928,56 +965,114 @@ with aba_xai:
             """
             Em conformidade com as diretrizes regulatórias do mercado de capitais e princípios de **Governança de Dados**,
             modelos preditivos aplicados a riscos financeiros não podem operar como "caixas-pretas".
-            Utilizam-se as abordagens **SHAP (*SHapley Additive exPlanations*)** e **LIME** para auditoria quantitativa.
+            Utilizam-se as abordagens **SHAP (*SHapley Additive exPlanations*)** e **LIME** para auditoria quantitativa
+            do XGBoost treinado para o ativo selecionado.
             """
         )
 
-        # As figuras SHAP/LIME são geradas por main.py apenas para o ativo de referência
-        figuras_xai_validas = ticker_selecionado == TICKER_REF
-        if not figuras_xai_validas:
-            st.info(
-                f"As figuras SHAP e LIME foram geradas pelo pipeline (main.py) para o ativo de referência "
-                f"**{TICKER_REF}** e não são exibidas para {ticker_selecionado}."
+    if not (tem_modelos and "XGBoost" in modelos_dict):
+        st.info(
+            f"Treine os modelos de {ticker_selecionado} na aba **Desempenho dos Modelos** "
+            "para gerar as explicações SHAP e LIME deste ativo."
+        )
+    else:
+        m_xgb = modelos_dict["XGBoost"]
+        versao_modelo = str(meta_dict.get("data_salvamento", ""))
+        nomes_features = list(dataset.features)
+        datas_test_dt = pd.to_datetime(dataset.datas_test)
+
+        valores_shap, base_shap = shap_cached(ticker_selecionado, versao_modelo, m_xgb, X_test_scaled)
+        importancia = pd.DataFrame(
+            {"Feature": nomes_features, "Impacto Médio |SHAP|": np.abs(valores_shap).mean(axis=0)}
+        ).sort_values("Impacto Médio |SHAP|")
+
+        col_xai1, col_xai2 = st.columns(2, gap="large")
+        with col_xai1:
+            with secao("shap_bar"):
+                st.markdown("#### 1. Importância Global das Variáveis (SHAP)")
+                fig_imp = go.Figure(
+                    go.Bar(
+                        x=importancia["Impacto Médio |SHAP|"],
+                        y=importancia["Feature"],
+                        orientation="h",
+                        marker_color="#1e3a8a",
+                        hovertemplate="%{y}: %{x:.5f}<extra></extra>",
+                    )
+                )
+                fig_imp.update_layout(
+                    title=f"Média de |SHAP| no Conjunto de Teste — {ticker_selecionado}",
+                    xaxis_title="Impacto médio na volatilidade prevista",
+                    height=400,
+                    margin=dict(l=130, b=56),
+                )
+                exibir_grafico(fig_imp)
+                st.caption("Quanto maior a barra, mais a variável altera, em média, a previsão do XGBoost.")
+
+        with col_xai2:
+            with secao("shap_beeswarm"):
+                st.markdown("#### 2. Direção e Dispersão do Impacto (SHAP Beeswarm)")
+                # Cor = posição do valor da feature entre as amostras de teste (0 = menor, 1 = maior)
+                gerador = np.random.default_rng(RANDOM_STATE)
+                fig_bee = go.Figure()
+                for pos, feat in enumerate(importancia["Feature"]):
+                    j = nomes_features.index(feat)
+                    valores_feat = pd.Series(dataset.X_test[:, j])
+                    fig_bee.add_trace(
+                        go.Scatter(
+                            x=valores_shap[:, j],
+                            y=pos + gerador.uniform(-0.28, 0.28, len(valores_feat)),
+                            mode="markers",
+                            name=feat,
+                            showlegend=False,
+                            customdata=valores_feat,
+                            hovertemplate=f"{feat} = %{{customdata:.4g}}<br>SHAP = %{{x:.5f}}<extra></extra>",
+                            marker=dict(
+                                size=5,
+                                opacity=0.75,
+                                color=valores_feat.rank(pct=True),
+                                colorscale=[[0, "#1e3a8a"], [0.5, "#a3a8b8"], [1, "#b91c1c"]],
+                                cmin=0,
+                                cmax=1,
+                                showscale=pos == 0,
+                                colorbar=dict(
+                                    title=dict(text="Valor da<br>feature", side="right"),
+                                    tickvals=[0, 1],
+                                    ticktext=["Baixo", "Alto"],
+                                    thickness=12,
+                                    outlinewidth=0,
+                                ),
+                            ),
+                        )
+                    )
+                fig_bee.add_vline(x=0, line=dict(color="#3f4654", width=1))
+                fig_bee.update_layout(
+                    title=f"Impacto de Cada Amostra de Teste — {ticker_selecionado}",
+                    xaxis_title="Valor SHAP (efeito na volatilidade prevista)",
+                    yaxis=dict(
+                        tickmode="array",
+                        tickvals=list(range(len(importancia))),
+                        ticktext=list(importancia["Feature"]),
+                        showgrid=False,
+                    ),
+                    height=400,
+                    margin=dict(l=130, b=56),
+                )
+                exibir_grafico(fig_bee)
+                st.caption("Pontos à direita aumentam a previsão; vermelho indica valor alto da variável, azul indica valor baixo.")
+
+        with secao("previsao_local"):
+            st.markdown("#### 3. Simulador Local Interativo: Previsão de um Pregão Específico")
+
+            idx_selecionado = st.slider(
+                "Selecione o índice da amostra de teste:",
+                min_value=0,
+                max_value=len(dataset.datas_test) - 1,
+                value=10,
+                help="Permite inspecionar a previsão individual do modelo para qualquer dia da base de teste.",
             )
 
-    col_xai1, col_xai2 = st.columns(2, gap="large")
-    with col_xai1:
-        with secao("shap_bar"):
-            st.markdown("#### 1. Importância Global das Variáveis (SHAP Bar)")
-            img_shap_bar = FIGURES_DIR / "shap_importancia_global_bar.png"
-            if figuras_xai_validas and img_shap_bar.exists():
-                st.image(str(img_shap_bar), caption="Média absoluta dos valores SHAP (Impacto Global)", use_container_width=True)
-            else:
-                st.caption("Gráfico SHAP Bar indisponível para este ativo.")
-
-    with col_xai2:
-        with secao("shap_beeswarm"):
-            st.markdown("#### 2. Direção e Dispersão do Impacto (SHAP Beeswarm)")
-            img_shap_bee = FIGURES_DIR / "shap_beeswarm.png"
-            if figuras_xai_validas and img_shap_bee.exists():
-                st.image(str(img_shap_bee), caption="Distribuição do impacto: valores altos (vermelho) vs baixos (azul)", use_container_width=True)
-            else:
-                st.caption("Gráfico SHAP Beeswarm indisponível para este ativo.")
-
-    datas_test_dt = pd.to_datetime(dataset.datas_test)
-
-    with secao("previsao_local"):
-        st.markdown("#### 3. Simulador Local Interativo: Previsão de um Pregão Específico")
-
-        idx_selecionado = st.slider(
-            "Selecione o índice da amostra de teste:",
-            min_value=0,
-            max_value=len(dataset.datas_test) - 1,
-            value=10,
-            help="Permite inspecionar a previsão individual do modelo para qualquer dia da base de teste.",
-        )
-
-        data_amostra = datas_test_dt[idx_selecionado].strftime("%d/%m/%Y")
-        val_real = dataset.y_test[idx_selecionado]
-
-        # Previsão pontual do XGBoost
-        if tem_modelos and "XGBoost" in modelos_dict:
-            m_xgb = modelos_dict["XGBoost"]
+            data_amostra = datas_test_dt[idx_selecionado].strftime("%d/%m/%Y")
+            val_real = dataset.y_test[idx_selecionado]
             amostra_scaled = X_test_scaled[idx_selecionado].reshape(1, -1)
             pred_xgb_dia = float(m_xgb.predict(amostra_scaled)[0])
 
@@ -994,26 +1089,85 @@ with aba_xai:
                     delta=f"Erro (previsto − real): {(pred_xgb_dia - val_real):+.4f}",
                     delta_color="off",
                 )
-        else:
-            st.caption(f"Treine os modelos de {ticker_selecionado} para inspecionar previsões individuais.")
 
-    # Explicações locais pré-geradas pelo pipeline para a amostra de índice 10
-    with secao("explicacoes_locais"):
-        st.markdown(f"#### 4. Decomposição Local da Amostra #10 ({datas_test_dt[10]:%d/%m/%Y})")
-        col_wf, col_lime = st.columns(2, gap="large")
-        with col_wf:
-            img_wf = FIGURES_DIR / "shap_waterfall_amostra_10.png"
-            if figuras_xai_validas and img_wf.exists():
-                st.image(str(img_wf), caption="SHAP Waterfall Plot", use_container_width=True)
-            else:
-                st.caption("SHAP Waterfall indisponível para este ativo.")
+        # Decomposição local do pregão escolhido no slider
+        with secao("explicacoes_locais"):
+            st.markdown(f"#### 4. Decomposição Local da Previsão — Pregão de {data_amostra}")
+            # Os dois gráficos ficam empilhados, com a largura toda, para os rótulos longos caberem
+            with linha("xai_waterfall"):
+                contrib = valores_shap[idx_selecionado]
+                ordem = np.argsort(-np.abs(contrib))
+                def formatar_valor(v: float) -> str:
+                    # Preço, médias e volume em milhares; retornos, volatilidade e RSI com 4 dígitos
+                    return f"{v:,.0f}".replace(",", ".") if abs(v) >= 1000 else f"{v:.4g}"
 
-        with col_lime:
-            img_lime = FIGURES_DIR / "lime_explicacao_amostra_10.png"
-            if figuras_xai_validas and img_lime.exists():
-                st.image(str(img_lime), caption="LIME - Explicação Linear Local", use_container_width=True)
-            else:
-                st.caption("Gráfico LIME indisponível para este ativo.")
+                rotulos = [f"{nomes_features[j]} = {formatar_valor(dataset.X_test[idx_selecionado, j])}" for j in ordem]
+                fig_wf = go.Figure(
+                    go.Waterfall(
+                        orientation="h",
+                        measure=["absolute"] + ["relative"] * len(ordem) + ["total"],
+                        y=["Valor esperado E[f(x)]"] + rotulos + ["Previsão f(x)"],
+                        x=[base_shap] + [float(contrib[j]) for j in ordem] + [0],
+                        text=[f"{base_shap:.4f}"] + [f"{contrib[j]:+.4f}" for j in ordem] + [f"{pred_xgb_dia:.4f}"],
+                        textposition="outside",
+                        cliponaxis=False,
+                        increasing=dict(marker=dict(color="#b91c1c")),
+                        decreasing=dict(marker=dict(color="#1e3a8a")),
+                        totals=dict(marker=dict(color="#6b7280")),
+                        connector=dict(line=dict(color="#a3a8b8", width=1)),
+                    )
+                )
+                # Eixo aproximado da faixa percorrida pelas contribuições (como no waterfall do SHAP)
+                trajetoria = base_shap + np.concatenate([[0], np.cumsum(contrib[ordem])])
+                folga = max(trajetoria.max() - trajetoria.min(), 1e-4) * 0.35
+                fig_wf.update_layout(
+                    title="SHAP Waterfall",
+                    xaxis_title="Volatilidade prevista (anualizada)",
+                    xaxis_range=[trajetoria.min() - folga, trajetoria.max() + folga],
+                    yaxis=dict(autorange="reversed", showgrid=False),
+                    showlegend=False,
+                    height=440,
+                    margin=dict(l=220, r=70, b=56),
+                )
+                exibir_grafico(fig_wf)
+                st.caption(
+                    "Vermelho aumenta e azul reduz a volatilidade prevista a partir do valor esperado do modelo. "
+                    "O eixo foi aproximado da faixa das contribuições; as barras cinza partem de valores fora dela."
+                )
+
+            with st.container():
+                explicador_lime = explicador_lime_cached(
+                    ticker_selecionado, versao_modelo, dataset.X_train, tuple(nomes_features)
+                )
+                pesos_lime = lime_cached(
+                    ticker_selecionado,
+                    versao_modelo,
+                    idx_selecionado,
+                    explicador_lime,
+                    m_xgb,
+                    scaler_salvo,
+                    dataset.X_test[idx_selecionado],
+                )
+                df_lime = pd.DataFrame(pesos_lime, columns=["Condição", "Peso"]).iloc[::-1]
+                fig_lime = go.Figure(
+                    go.Bar(
+                        x=df_lime["Peso"],
+                        y=df_lime["Condição"],
+                        orientation="h",
+                        marker_color=np.where(df_lime["Peso"] >= 0, "#b91c1c", "#1e3a8a"),
+                        hovertemplate="%{y}<br>Peso = %{x:.5f}<extra></extra>",
+                    )
+                )
+                fig_lime.add_vline(x=0, line=dict(color="#3f4654", width=1))
+                fig_lime.update_layout(
+                    title="LIME — Explicação Linear Local",
+                    xaxis_title="Peso na volatilidade prevista",
+                    yaxis=dict(showgrid=False),
+                    height=400,
+                    margin=dict(l=260, b=56),
+                )
+                exibir_grafico(fig_lime)
+                st.caption("Condições em escala original das variáveis; o peso indica o efeito local estimado pelo LIME.")
 
 
 # =============================================================================
