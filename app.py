@@ -7,6 +7,7 @@ Autora: Lorrana Evelyn de Araújo Pereira
 =============================================================================
 """
 
+import base64
 import json
 import os
 import sys
@@ -273,6 +274,28 @@ def formatar_reais(valor: float) -> str:
     return f"R$ {texto}"
 
 
+ICONES_DIR = BASE_DIR / "assets" / "ativos"
+TIPOS_ICONE = {".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml"}
+
+
+def icone_ativo_html(ticker: str) -> str:
+    """
+    Logotipo do ativo (<img> embutida em base64) a partir de assets/ativos/<TICKER>.<ext>.
+    Os logotipos vêm da Wikimedia Commons / Wikipédia (o do Ibovespa é o da B3, que calcula o índice).
+    Procura PNG, depois JPG, depois SVG.
+    """
+    nome = ticker.replace("^", "").replace(".SA", "")
+    for extensao in (".png", ".jpg", ".svg"):
+        caminho = ICONES_DIR / f"{nome}{extensao}"
+        if caminho.exists():
+            conteudo = base64.b64encode(caminho.read_bytes()).decode("ascii")
+            return (
+                f'<img class="ativo-icone" src="data:{TIPOS_ICONE[extensao]};base64,{conteudo}" '
+                f'alt="Miniatura de {ticker}">'
+            )
+    return ""
+
+
 # =============================================================================
 # BARRA LATERAL (SIDEBAR)
 # =============================================================================
@@ -307,6 +330,8 @@ with st.sidebar:
     )
 
     ticker_selecionado = opcao_selecionada.split(" ")[0]
+    # Nome entre parênteses na opção, ex.: "PETR4.SA (Petrobras PN)" -> "Petrobras PN"
+    nome_ativo_selecionado = opcao_selecionada.split("(", 1)[1].rstrip(")")
 
     # Status dos Modelos: cada ativo tem seus próprios modelos e scaler, pois um
     # modelo treinado em uma série não é válido para outra (escalas e regimes distintos)
@@ -364,10 +389,14 @@ st.markdown(
     f"""
     <div class="academic-header">
         <div class="academic-title">Previsão de Riscos Financeiros com Data Science e Machine Learning</div>
-        <p class="academic-meta">
+        <div class="academic-meta">
             <span>Ativo em foco</span>
-            <span class="ticker-tag">{ticker_selecionado}</span>
-        </p>
+            {icone_ativo_html(ticker_selecionado)}
+            <div class="ativo-identificacao">
+                <span class="ticker-tag">{ticker_selecionado}</span>
+                <span class="ativo-nome">{nome_ativo_selecionado}</span>
+            </div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,

@@ -136,6 +136,32 @@ h4 {
     gap: 0.6rem;
 }
 
+/* Miniatura (logotipo) do ativo em foco: moldura retangular branca para caber
+   tanto logotipos horizontais (Ambev, S&P 500, B3) quanto verticais (Bradesco) */
+.ativo-icone {
+    width: 128px;
+    height: 60px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    object-fit: contain;
+    border: 1px solid var(--cor-borda);
+    background: #ffffff;
+    flex-shrink: 0;
+}
+
+.ativo-identificacao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+}
+
+.ativo-nome {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--cor-texto);
+}
+
 .ticker-tag {
     display: inline-block;
     font-family: 'JetBrains Mono', monospace;
