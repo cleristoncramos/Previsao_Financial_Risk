@@ -240,6 +240,12 @@ def exibir_grafico(fig: go.Figure) -> None:
     st.plotly_chart(fig, use_container_width=True, theme=None)
 
 
+def formatar_reais(valor: float) -> str:
+    """Valor monetário no padrão brasileiro: R$ 1.234.567,89."""
+    texto = f"{valor:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"R$ {texto}"
+
+
 # =============================================================================
 # BARRA LATERAL (SIDEBAR)
 # =============================================================================
@@ -1257,6 +1263,8 @@ with aba_simulador:
                     step=5000.0,
                     format="%.2f",
                 )
+                # O campo numérico não aceita separador de milhar; o valor formatado fica logo abaixo
+                st.caption(f"Patrimônio considerado: {formatar_reais(patrimonio)}")
 
                 # Volatilidade diária (desanualizada dividindo por sqrt(252))
                 vol_diaria = vol_predita / np.sqrt(252)
@@ -1274,7 +1282,7 @@ with aba_simulador:
                         f"""
                         <div class="kpi-card">
                             <div class="kpi-label">VaR Diário (95% Confiança)</div>
-                            <div class="kpi-value" style="color: #c2410c; font-size: 1.45rem;">R$ {var_95:,.2f}</div>
+                            <div class="kpi-value" style="color: #c2410c; font-size: 1.45rem;">{formatar_reais(var_95)}</div>
                             <div class="kpi-sub">Perda máxima diária esperada em 95% dos pregões</div>
                         </div>
                         """,
@@ -1285,7 +1293,7 @@ with aba_simulador:
                         f"""
                         <div class="kpi-card kpi-alert">
                             <div class="kpi-label">VaR Diário (99% Confiança)</div>
-                            <div class="kpi-value" style="color: #b91c1c; font-size: 1.45rem;">R$ {var_99:,.2f}</div>
+                            <div class="kpi-value" style="color: #b91c1c; font-size: 1.45rem;">{formatar_reais(var_99)}</div>
                             <div class="kpi-sub">Perda máxima esperada em 99% dos pregões (cenário adverso)</div>
                         </div>
                         """,
