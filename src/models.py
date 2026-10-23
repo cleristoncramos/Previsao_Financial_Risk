@@ -50,15 +50,13 @@ def treinar_xgboost(
 ) -> Tuple[xgb.XGBRegressor, np.ndarray]:
     """
     Treina o modelo de Gradient Boosting XGBoost.
+
+    O conjunto de teste (X_val / y_val) não participa do ajuste nem é monitorado
+    durante o treino; ele é usado apenas para gerar as previsões finais.
     """
     print("  -> [1/3] Treinando XGBoost...")
     modelo = xgb.XGBRegressor(**params)
-    modelo.fit(
-        X_train,
-        y_train,
-        eval_set=[(X_val, y_val)],
-        verbose=False,
-    )
+    modelo.fit(X_train, y_train, verbose=False)
     predicoes = modelo.predict(X_val)
     print("  [OK] XGBoost concluído com sucesso!")
     return modelo, predicoes
@@ -73,22 +71,12 @@ def treinar_lightgbm(
 ) -> Tuple[lgb.LGBMRegressor, np.ndarray]:
     """
     Treina o modelo LightGBM Regressor.
+
+    Assim como no XGBoost, o conjunto de teste é usado apenas para as previsões finais.
     """
     print("  -> [2/3] Treinando LightGBM...")
     modelo = lgb.LGBMRegressor(**params)
-    try:
-        modelo.fit(
-            X_train,
-            y_train,
-            eval_X=X_val,
-            eval_y=y_val,
-        )
-    except TypeError:
-        modelo.fit(
-            X_train,
-            y_train,
-            eval_set=[(X_val, y_val)],
-        )
+    modelo.fit(X_train, y_train)
     predicoes = modelo.predict(X_val)
     print("  [OK] LightGBM concluído com sucesso!")
     return modelo, predicoes

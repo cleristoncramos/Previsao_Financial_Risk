@@ -373,10 +373,10 @@ Série do ^BVSP de 04/01/2016 a 21/10/2026 (2.684 pregões). Treino: 2.105 amost
 
 | Modelo | RMSE | MAE | R² |
 |---|---:|---:|---:|
-| Baseline de persistência | **0,01185** | **0,00601** | **0,9299** |
-| XGBoost | 0,01406 | 0,00895 | 0,9013 |
-| LightGBM | 0,01496 | 0,00959 | 0,8883 |
-| Rede Neural (MLP) | 0,02419 | 0,01625 | 0,7080 |
+| Baseline de persistência | **0,01186** | **0,00603** | **0,9299** |
+| XGBoost | 0,01407 | 0,00897 | 0,9014 |
+| LightGBM | 0,01497 | 0,00961 | 0,8883 |
+| Rede Neural (MLP) | 0,02419 | 0,01627 | 0,7083 |
 
 O RMSE do melhor modelo de Machine Learning (XGBoost) ficou 18,6% **acima** do baseline. Neste horizonte de um pregão, nenhum modelo superou a regra de persistência, resultado coerente com a alta autocorrelação da volatilidade em janela móvel (seção 2.6).
 

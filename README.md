@@ -60,10 +60,10 @@ Resultados no conjunto de teste do ativo de referência (`^BVSP`, 20% finais da 
 
 | Modelo | RMSE | MAE | R² |
 |---|---:|---:|---:|
-| **Baseline de persistência** (σ<sub>t+1</sub> = σ<sub>t</sub>) | **0,01185** | **0,00601** | **0,9299** |
-| XGBoost | 0,01406 | 0,00895 | 0,9013 |
-| LightGBM | 0,01496 | 0,00959 | 0,8883 |
-| Rede Neural (MLP) | 0,02419 | 0,01625 | 0,7080 |
+| **Baseline de persistência** (σ<sub>t+1</sub> = σ<sub>t</sub>) | **0,01186** | **0,00603** | **0,9299** |
+| XGBoost | 0,01407 | 0,00897 | 0,9014 |
+| LightGBM | 0,01497 | 0,00961 | 0,8883 |
+| Rede Neural (MLP) | 0,02419 | 0,01627 | 0,7083 |
 
 RMSE e MAE estão na escala da volatilidade anualizada (0,01 = 1 ponto percentual).
 
