@@ -897,7 +897,15 @@ h1.landing-titulo {
     background: #eef2fb;
 }
 
-/* Janela de informações acadêmicas */
+/* Janela de informações acadêmicas: um pouco mais larga que a "medium" (752px), para o título caber em uma linha */
+.stDialog > div:has(.info-academica) {
+    width: 800px !important;  /* o Streamlit já limita a calc(100% - 32px) em telas estreitas */
+}
+
+.stDialog > div:has(.info-academica) > [role="dialog"] {
+    width: 100% !important;
+}
+
 .info-academica-logos {
     display: flex;
     align-items: center;
