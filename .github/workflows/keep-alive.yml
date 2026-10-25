@@ -1,0 +1,39 @@
+name: Keep-alive do app Streamlit
+
+# Abre o app periodicamente para evitar a hibernação do Streamlit Community Cloud.
+on:
+  schedule:
+    - cron: "17 */6 * * *"  # A cada 6 horas (UTC), fora da virada da hora, quando o GitHub atrasa mais
+  workflow_dispatch:         # Permite executar manualmente pela aba Actions
+
+permissions:
+  contents: read
+
+jobs:
+  manter-ativo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_URL: https://previsaofinancialrisk.streamlit.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar o Playwright e o Chromium
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Visitar o app
+        run: python scripts/keep_alive.py
+
+      - name: Guardar a captura em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keep-alive-falha
+          path: keep_alive_falha.png
+          if-no-files-found: ignore

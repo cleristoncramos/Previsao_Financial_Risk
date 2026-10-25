@@ -249,7 +249,8 @@ Previsao_Financial_Risk/
 │   └── report.py                   # Relatório consolidado e exportação em CSV
 ├── scripts/
 │   ├── rasterizar_logos.py         # Converte os logotipos dos ativos em PNG
-│   └── gerar_video_apresentacao.py # Gera o vídeo da página inicial
+│   ├── gerar_video_apresentacao.py # Gera o vídeo da página inicial
+│   └── keep_alive.py               # Visita o app publicado para evitar a hibernação
 ├── assets/
 │   ├── style.css                   # Estilo visual do sistema
 │   ├── ativos/                     # Logotipos dos ativos (e PNGs em ativos/png/)
@@ -348,6 +349,22 @@ O primeiro script usa o Chrome ou o Edge instalados, em modo headless, para conv
 2. Em [share.streamlit.io](https://share.streamlit.io), crie um app apontando para o repositório, o branch `main` e o arquivo principal **`app.py`**.
 3. As dependências são instaladas a partir de `requirements.txt` (inclui `tzdata`, usado para o horário de Brasília).
 4. Após enviar alterações em módulos de `src/` ou no `requirements.txt`, reinicie o app em **Manage app → Reboot app**, para que os módulos sejam recarregados.
+
+### Keep-alive (prevenção da hibernação)
+
+O Streamlit Community Cloud hiberna apps sem visitas por algum tempo, e quem acessa depois precisa clicar em **Yes, get this app back up!** e esperar o reinício. Para evitar isso, o workflow `.github/workflows/keep-alive.yml` roda no GitHub Actions a cada 6 horas e executa `scripts/keep_alive.py`, que abre o app em um navegador headless (Playwright com Chromium), clica no botão de reativação se o app estiver hibernando e aguarda o painel carregar. Uma requisição HTTP simples não basta, porque não conta como visita.
+
+- **Execução manual:** aba **Actions → Keep-alive do app Streamlit → Run workflow**.
+- **Falhas:** o job termina com erro e guarda uma captura da página (`keep_alive_falha.png`) como artefato da execução.
+- **Outro endereço:** altere `APP_URL` no workflow.
+- **Limite do GitHub:** em repositórios públicos, o GitHub desativa workflows agendados após 60 dias sem commits. Se isso acontecer, reative-o na aba **Actions**.
+- **Execução local:**
+
+```bash
+pip install playwright
+playwright install chromium
+python scripts/keep_alive.py https://previsaofinancialrisk.streamlit.app
+```
 
 ---
 

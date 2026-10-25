@@ -22,3 +22,6 @@ __pycache__/
 *.log
 .DS_Store
 Thumbs.db
+
+# Captura gerada pelo scripts/keep_alive.py quando o app não carrega
+keep_alive_falha.png
