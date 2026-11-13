@@ -67,6 +67,7 @@ from src.figuras import (
     formatar_condicao_lime,
     triangulo_inferior,
 )
+from src.textos_graficos import texto_grafico
 from src.model_store import (
     carregar_modelos_salvos,
     modelos_existem,
@@ -271,6 +272,12 @@ def formatar_numero(valor: float, casas: int = 2) -> str:
     return f"{valor:,.{casas}f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
+def como_ler(chave: str, **valores) -> None:
+    """Botão discreto que abre a explicação do gráfico em linguagem simples (src/textos_graficos.py)."""
+    with st.popover("Como ler este gráfico", icon=":material/lightbulb:", type="tertiary"):
+        st.markdown(texto_grafico(chave, **valores))
+
+
 def formatar_reais(valor: float) -> str:
     """Valor monetário no padrão brasileiro: R$ 1.234.567,89."""
     return f"R$ {formatar_numero(valor, 2)}"
@@ -402,6 +409,14 @@ with st.sidebar:
         bool(modelos_dict)
         and scaler_salvo is not None
         and meta_dict.get("ticker_ref") == ticker_selecionado
+    )
+
+    # Recursos técnicos ficam ocultos por padrão, para o usuário leigo não esbarrar neles
+    modo_pesquisador = st.toggle(
+        "Modo pesquisador",
+        key="modo_pesquisador",
+        help="Mostra os recursos técnicos: validação cruzada temporal, curva de aprendizado da rede neural, "
+        "SHAP beeswarm e explicação LIME.",
     )
 
     st.markdown('<div class="sidebar-titulo" style="margin-top: 1.75rem;">Estado da Modelagem</div>', unsafe_allow_html=True)
@@ -868,6 +883,14 @@ with aba_eda:
     # Gráfico 1: Preço de Fechamento e Médias Móveis
     with secao("eda_precos"):
         st.markdown("#### 1. Série Temporal de Preços e Tendências")
+        preco_ini, preco_fim = float(df_periodo["Close"].iloc[0]), float(df_periodo["Close"].iloc[-1])
+        como_ler(
+            "eda_precos",
+            ativo=ticker_selecionado,
+            preco_inicio=formatar_numero(preco_ini, 2),
+            preco_fim=formatar_numero(preco_fim, 2),
+            variacao=f"{(preco_fim / preco_ini - 1) * 100:+.1f}%".replace(".", ","),
+        )
         fig_fech = go.Figure()
         fig_fech.add_trace(
             go.Scatter(
@@ -910,6 +933,13 @@ with aba_eda:
     # Gráfico 2: Volatilidade Histórica Anualizada
     with secao("eda_volatilidade"):
         st.markdown("#### 2. Evolução da Volatilidade Histórica Anualizada (Janela Móvel 21d)")
+        linha_pico = df_periodo.loc[df_periodo["Volatilidade_21d"].idxmax()]
+        como_ler(
+            "eda_volatilidade",
+            pico=f"{formatar_numero(linha_pico['Volatilidade_21d'] * 100, 1)}% ao ano",
+            data_pico=f"{linha_pico['Data']:%d/%m/%Y}",
+            atual=f"{formatar_numero(df_periodo['Volatilidade_21d'].iloc[-1] * 100, 1)}% ao ano",
+        )
         fig_vol = px.area(
             df_periodo,
             x="Data",
@@ -930,6 +960,14 @@ with aba_eda:
         st.markdown("#### 3. Fatos Estilizados: Distribuição de Retornos e Hipótese de Normalidade")
 
         retornos = df_periodo["Retorno_Diario"].dropna()
+        datas_retornos = df_periodo.loc[retornos.index, "Data"]
+        como_ler(
+            "eda_fatos",
+            pior_dia=f"{formatar_numero(retornos.min() * 100, 2)}%",
+            data_pior=f"{datas_retornos[retornos.idxmin()]:%d/%m/%Y}",
+            melhor_dia=f"{formatar_numero(retornos.max() * 100, 2)}%",
+            data_melhor=f"{datas_retornos[retornos.idxmax()]:%d/%m/%Y}",
+        )
         skewness = float(retornos.skew())
         kurtosis = float(retornos.kurtosis())
 
@@ -1043,6 +1081,15 @@ with aba_eda:
             if not df_ret_corr.empty:
                 # Só o triângulo inferior: cada par de ativos aparece uma vez, sem a diagonal (sempre 1)
                 corr_mat = triangulo_inferior(df_ret_corr.corr())
+                pares = corr_mat.stack()
+                par_max, par_min = pares.idxmax(), pares.idxmin()
+                como_ler(
+                    "eda_correlacao",
+                    par_max=f"{par_max[0]} × {par_max[1]}",
+                    corr_max=formatar_numero(pares.max(), 2),
+                    par_min=f"{par_min[0]} × {par_min[1]}",
+                    corr_min=formatar_numero(pares.min(), 2),
+                )
                 textos = corr_mat.map(lambda v: "" if pd.isna(v) else formatar_numero(v, 2))
                 fig_corr = go.Figure(
                     go.Heatmap(
@@ -1193,6 +1240,11 @@ with aba_modelos:
 
         with secao("tabela_metricas"):
             st.markdown("#### 1. Tabela Comparativa de Métricas de Regressão")
+            como_ler(
+                "tabela_metricas",
+                melhor_modelo=df_metricas.iloc[0]["Modelo"],
+                melhor_rmse=formatar_numero(df_metricas.iloc[0]["RMSE"], 5),
+            )
 
             # Formatação da Tabela
             def classificar_modelo(nome: str) -> str:
@@ -1216,12 +1268,14 @@ with aba_modelos:
         # Gráfico Comparativo: Real vs Previsões
         with secao("real_vs_modelos"):
             st.markdown("#### 2. Visualização Comparativa da Série Temporal: Real vs. Modelos")
+            como_ler("real_vs_modelos")
 
             modelos_disponiveis = list(predicoes.keys())
             modelos_selecionados = st.multiselect(
                 "Selecione os modelos a exibir no gráfico:",
                 options=modelos_disponiveis,
-                default=[melhor_ml["Modelo"], "Baseline Ingênuo (Persistência)"],
+                # O baseline continua na lista; vem marcado só no modo pesquisador
+                default=[melhor_ml["Modelo"]] + (["Baseline Ingênuo (Persistência)"] if modo_pesquisador else []),
             )
 
             datas_dt = pd.to_datetime(dataset.datas_test)
@@ -1266,75 +1320,84 @@ with aba_modelos:
             )
             exibir_grafico(fig_comp)
 
-        # Validação Cruzada Temporal e Curva de Treino: painéis lado a lado com a mesma altura
-        with st.container(key="pares_validacao_curva"):
-            col_val1, col_val2 = st.columns(2, gap="large")
-            with col_val1:
-                with secao("validacao_cruzada"):
-                    st.markdown("#### 3. Validação Cruzada Temporal (TimeSeriesSplit)")
-                    st.markdown(
-                        """
-                        Para avaliar se o modelo de Gradient Boosting possui consistência ao longo de diferentes
-                        ciclos e crises financeiras, aplicou-se a divisão progressiva em **5 folds temporais (sem shuffle)**:
-                        """
-                    )
-                    folds_data = validacao_cruzada_cached(
-                        ticker_selecionado, str(df_ativo["Data"].max().date()), dataset
-                    )
-                    fig_folds = px.bar(
-                        folds_data,
-                        x="Fold",
-                        y="RMSE",
-                        text="RMSE",
-                        hover_data=["Período de Validação"],
-                        title=f"RMSE por Fold Temporal (TimeSeriesSplit 5) — {ticker_selecionado}",
-                        color_discrete_sequence=["#1e3a8a"],
-                        height=360,
-                    )
-                    fig_folds.update_traces(texttemplate="%{text:.4f}", textposition="outside", cliponaxis=False)
-                    fig_folds.update_layout(margin=dict(b=56))
-                    exibir_grafico(fig_folds)
-
-                    fold_pior = folds_data.loc[folds_data["RMSE"].idxmax()]
-                    st.caption(
-                        f"RMSE médio: {formatar_numero(folds_data['RMSE'].mean(), 5)} ± {formatar_numero(folds_data['RMSE'].std(ddof=0), 5)}. "
-                        f"Maior erro no {fold_pior['Fold']} ({fold_pior['Período de Validação']}). "
-                        "Os folds percorrem a série completa (treino + teste), sempre treinando no passado e validando no futuro."
-                    )
-
-            with col_val2:
-                with secao("curva_mlp"):
-                    st.markdown("#### 4. Curva de Aprendizado — Rede Neural MLP")
-                    historico_nn = meta_dict.get("historico_nn") or {}
-                    if historico_nn.get("loss") and historico_nn.get("val_loss"):
-                        epocas = list(range(1, len(historico_nn["loss"]) + 1))
-                        fig_nn = go.Figure()
-                        fig_nn.add_trace(
-                            go.Scatter(x=epocas, y=historico_nn["loss"], name="Treino (MSE)", line=dict(color="#1e3a8a", width=1.8))
+        if modo_pesquisador:
+            # Validação Cruzada Temporal e Curva de Treino: painéis lado a lado com a mesma altura
+            with st.container(key="pares_validacao_curva"):
+                col_val1, col_val2 = st.columns(2, gap="large")
+                with col_val1:
+                    with secao("validacao_cruzada"):
+                        st.markdown("#### 3. Validação Cruzada Temporal (TimeSeriesSplit)")
+                        como_ler("validacao_cruzada")
+                        st.markdown(
+                            """
+                            Para avaliar se o modelo de Gradient Boosting possui consistência ao longo de diferentes
+                            ciclos e crises financeiras, aplicou-se a divisão progressiva em **5 folds temporais (sem shuffle)**:
+                            """
                         )
-                        fig_nn.add_trace(
-                            go.Scatter(x=epocas, y=historico_nn["val_loss"], name="Validação (MSE)", line=dict(color="#b45309", width=1.8))
+                        folds_data = validacao_cruzada_cached(
+                            ticker_selecionado, str(df_ativo["Data"].max().date()), dataset
                         )
-                        melhor_epoca = int(np.argmin(historico_nn["val_loss"])) + 1
-                        fig_nn.add_vline(x=melhor_epoca, line=dict(color="#6b7280", dash="dash"))
-                        fig_nn.update_layout(
-                            title=f"Perda MSE por Época — {ticker_selecionado}",
-                            xaxis_title="Época",
-                            yaxis_title="MSE",
-                            yaxis_type="log",
-                            yaxis_dtick=1,  # um rótulo por década (0,0001; 0,001; ...)
+                        fig_folds = px.bar(
+                            folds_data,
+                            x="Fold",
+                            y="RMSE",
+                            text="RMSE",
+                            hover_data=["Período de Validação"],
+                            title=f"RMSE por Fold Temporal (TimeSeriesSplit 5) — {ticker_selecionado}",
+                            color_discrete_sequence=["#1e3a8a"],
                             height=360,
                         )
-                        exibir_grafico(fig_nn)
+                        fig_folds.update_traces(texttemplate="%{text:.4f}", textposition="outside", cliponaxis=False)
+                        fig_folds.update_layout(margin=dict(b=56))
+                        exibir_grafico(fig_folds)
+
+                        fold_pior = folds_data.loc[folds_data["RMSE"].idxmax()]
                         st.caption(
-                            f"Early Stopping restaurou os pesos da época {melhor_epoca} (menor perda de validação, "
-                            "medida nos últimos 15% do conjunto de treino)."
+                            f"RMSE médio: {formatar_numero(folds_data['RMSE'].mean(), 5)} ± {formatar_numero(folds_data['RMSE'].std(ddof=0), 5)}. "
+                            f"Maior erro no {fold_pior['Fold']} ({fold_pior['Período de Validação']}). "
+                            "Os folds percorrem a série completa (treino + teste), sempre treinando no passado e validando no futuro."
                         )
-                    else:
-                        st.info(
-                            "Histórico de treino da MLP não registrado para este ativo. "
-                            "Treine os modelos novamente para gerar a curva."
-                        )
+
+                with col_val2:
+                    with secao("curva_mlp"):
+                        st.markdown("#### 4. Curva de Aprendizado — Rede Neural MLP")
+                        como_ler("curva_mlp")
+                        historico_nn = meta_dict.get("historico_nn") or {}
+                        if historico_nn.get("loss") and historico_nn.get("val_loss"):
+                            epocas = list(range(1, len(historico_nn["loss"]) + 1))
+                            fig_nn = go.Figure()
+                            fig_nn.add_trace(
+                                go.Scatter(x=epocas, y=historico_nn["loss"], name="Treino (MSE)", line=dict(color="#1e3a8a", width=1.8))
+                            )
+                            fig_nn.add_trace(
+                                go.Scatter(x=epocas, y=historico_nn["val_loss"], name="Validação (MSE)", line=dict(color="#b45309", width=1.8))
+                            )
+                            melhor_epoca = int(np.argmin(historico_nn["val_loss"])) + 1
+                            fig_nn.add_vline(x=melhor_epoca, line=dict(color="#6b7280", dash="dash"))
+                            fig_nn.update_layout(
+                                title=f"Perda MSE por Época — {ticker_selecionado}",
+                                xaxis_title="Época",
+                                yaxis_title="MSE",
+                                yaxis_type="log",
+                                yaxis_dtick=1,  # um rótulo por década (0,0001; 0,001; ...)
+                                height=360,
+                            )
+                            exibir_grafico(fig_nn)
+                            st.caption(
+                                f"Early Stopping restaurou os pesos da época {melhor_epoca} (menor perda de validação, "
+                                "medida nos últimos 15% do conjunto de treino)."
+                            )
+                        else:
+                            st.info(
+                                "Histórico de treino da MLP não registrado para este ativo. "
+                                "Treine os modelos novamente para gerar a curva."
+                            )
+
+        else:
+            st.caption(
+                "A validação cruzada temporal e a curva de aprendizado da rede neural ficam no "
+                "**Modo pesquisador**, na barra lateral."
+            )
 
 
 # =============================================================================
@@ -1368,10 +1431,12 @@ with aba_xai:
             {"Feature": nomes_features, "Impacto Médio |SHAP|": np.abs(valores_shap).mean(axis=0)}
         ).sort_values("Impacto Médio |SHAP|")
 
-        col_xai1, col_xai2 = st.columns(2, gap="large")
+        # Sem o modo pesquisador, a importância global ocupa a largura toda (o beeswarm fica oculto)
+        col_xai1, col_xai2 = st.columns(2, gap="large") if modo_pesquisador else (st.container(), None)
         with col_xai1:
             with secao("shap_bar"):
                 st.markdown("#### 1. Importância Global das Variáveis (SHAP)")
+                como_ler("shap_bar", top_feature=importancia.iloc[-1]["Feature"])
                 fig_imp = go.Figure(
                     go.Bar(
                         x=importancia["Impacto Médio |SHAP|"],
@@ -1390,60 +1455,63 @@ with aba_xai:
                 exibir_grafico(fig_imp)
                 st.caption("Quanto maior a barra, mais a variável altera, em média, a previsão do XGBoost.")
 
-        with col_xai2:
-            with secao("shap_beeswarm"):
-                st.markdown("#### 2. Direção e Dispersão do Impacto (SHAP Beeswarm)")
-                # Cor = posição do valor da feature entre as amostras de teste (0 = menor, 1 = maior)
-                gerador = np.random.default_rng(RANDOM_STATE)
-                fig_bee = go.Figure()
-                for pos, feat in enumerate(importancia["Feature"]):
-                    j = nomes_features.index(feat)
-                    valores_feat = pd.Series(dataset.X_test[:, j])
-                    fig_bee.add_trace(
-                        go.Scatter(
-                            x=valores_shap[:, j],
-                            y=pos + gerador.uniform(-0.28, 0.28, len(valores_feat)),
-                            mode="markers",
-                            name=feat,
-                            showlegend=False,
-                            customdata=valores_feat,
-                            hovertemplate=f"{feat} = %{{customdata:.4g}}<br>SHAP = %{{x:.5f}}<extra></extra>",
-                            marker=dict(
-                                size=5,
-                                opacity=0.75,
-                                color=valores_feat.rank(pct=True),
-                                colorscale=[[0, "#1e3a8a"], [0.5, "#a3a8b8"], [1, "#b91c1c"]],
-                                cmin=0,
-                                cmax=1,
-                                showscale=pos == 0,
-                                colorbar=dict(
-                                    title=dict(text="Valor da<br>feature", side="right"),
-                                    tickvals=[0, 1],
-                                    ticktext=["Baixo", "Alto"],
-                                    thickness=12,
-                                    outlinewidth=0,
+        if modo_pesquisador:
+            with col_xai2:
+                with secao("shap_beeswarm"):
+                    st.markdown("#### 2. Direção e Dispersão do Impacto (SHAP Beeswarm)")
+                    como_ler("shap_beeswarm")
+                    # Cor = posição do valor da feature entre as amostras de teste (0 = menor, 1 = maior)
+                    gerador = np.random.default_rng(RANDOM_STATE)
+                    fig_bee = go.Figure()
+                    for pos, feat in enumerate(importancia["Feature"]):
+                        j = nomes_features.index(feat)
+                        valores_feat = pd.Series(dataset.X_test[:, j])
+                        fig_bee.add_trace(
+                            go.Scatter(
+                                x=valores_shap[:, j],
+                                y=pos + gerador.uniform(-0.28, 0.28, len(valores_feat)),
+                                mode="markers",
+                                name=feat,
+                                showlegend=False,
+                                customdata=valores_feat,
+                                hovertemplate=f"{feat} = %{{customdata:.4g}}<br>SHAP = %{{x:.5f}}<extra></extra>",
+                                marker=dict(
+                                    size=5,
+                                    opacity=0.75,
+                                    color=valores_feat.rank(pct=True),
+                                    colorscale=[[0, "#1e3a8a"], [0.5, "#a3a8b8"], [1, "#b91c1c"]],
+                                    cmin=0,
+                                    cmax=1,
+                                    showscale=pos == 0,
+                                    colorbar=dict(
+                                        title=dict(text="Valor da<br>feature", side="right"),
+                                        tickvals=[0, 1],
+                                        ticktext=["Baixo", "Alto"],
+                                        thickness=12,
+                                        outlinewidth=0,
+                                    ),
                                 ),
-                            ),
+                            )
                         )
+                    fig_bee.add_vline(x=0, line=dict(color="#3f4654", width=1))
+                    fig_bee.update_layout(
+                        title=f"Impacto de Cada Amostra de Teste — {ticker_selecionado}",
+                        xaxis_title="Valor SHAP (efeito na volatilidade prevista)",
+                        yaxis=dict(
+                            tickmode="array",
+                            tickvals=list(range(len(importancia))),
+                            ticktext=list(importancia["Feature"]),
+                            showgrid=False,
+                        ),
+                        height=400,
+                        margin=dict(l=130, b=56),
                     )
-                fig_bee.add_vline(x=0, line=dict(color="#3f4654", width=1))
-                fig_bee.update_layout(
-                    title=f"Impacto de Cada Amostra de Teste — {ticker_selecionado}",
-                    xaxis_title="Valor SHAP (efeito na volatilidade prevista)",
-                    yaxis=dict(
-                        tickmode="array",
-                        tickvals=list(range(len(importancia))),
-                        ticktext=list(importancia["Feature"]),
-                        showgrid=False,
-                    ),
-                    height=400,
-                    margin=dict(l=130, b=56),
-                )
-                exibir_grafico(fig_bee)
-                st.caption("Pontos à direita aumentam a previsão; vermelho indica valor alto da variável, azul indica valor baixo.")
+                    exibir_grafico(fig_bee)
+                    st.caption("Pontos à direita aumentam a previsão; vermelho indica valor alto da variável, azul indica valor baixo.")
 
         with secao("previsao_local"):
-            st.markdown("#### 3. Simulador Local Interativo: Previsão de um Pregão Específico")
+            st.markdown(f"#### {3 if modo_pesquisador else 2}. Simulador Local Interativo: Previsão de um Pregão Específico")
+            como_ler("previsao_local")
 
             # Seleção por data (e não por índice): o pregão escolhido também define a decomposição
             # SHAP/LIME da seção 4 e as figuras locais do catálogo na aba Relatórios
@@ -1474,19 +1542,21 @@ with aba_xai:
                 with col_loc1:
                     st.metric("Data do Pregão Analisado", data_amostra)
                 with col_loc2:
-                    st.metric("Volatilidade Real (t+1)", f"{val_real:.4f} ({val_real*100:.2f}%)")
+                    st.metric("Volatilidade Real (t+1)", f"{formatar_numero(val_real * 100, 2)}%")
                 with col_loc3:
                     # Erro de previsão em qualquer direção não é "bom" nem "ruim": delta em cor neutra
                     st.metric(
                         "Previsão do XGBoost",
-                        f"{pred_xgb_dia:.4f} ({pred_xgb_dia*100:.2f}%)",
-                        delta=f"Erro (previsto − real): {(pred_xgb_dia - val_real):+.4f}",
+                        f"{formatar_numero(pred_xgb_dia * 100, 2)}%",
+                        delta=f"Erro (previsto − real): {'+' if pred_xgb_dia >= val_real else ''}"
+                        f"{formatar_numero((pred_xgb_dia - val_real) * 100, 2)} p.p.",
                         delta_color="off",
                     )
 
         # Decomposição local do pregão escolhido no slider
         with secao("explicacoes_locais"):
-            st.markdown(f"#### 4. Decomposição Local da Previsão — Pregão de {data_amostra}")
+            st.markdown(f"#### {4 if modo_pesquisador else 3}. Decomposição Local da Previsão — Pregão de {data_amostra}")
+            como_ler("explicacoes_locais")
             # Os dois gráficos ficam empilhados, com a largura toda, para os rótulos longos caberem
             with linha("xai_waterfall"):
                 contrib = valores_shap[idx_selecionado]
@@ -1531,7 +1601,8 @@ with aba_xai:
                     "O eixo foi aproximado da faixa das contribuições; as barras cinza partem de valores fora dela."
                 )
 
-            with st.container():
+            # LIME: segunda explicação local, mais técnica, só no modo pesquisador
+            if modo_pesquisador:
                 explicador_lime = explicador_lime_cached(
                     ticker_selecionado, versao_modelo, dataset.X_train, tuple(nomes_features)
                 )
@@ -1602,23 +1673,23 @@ with aba_simulador:
         if vol_pct < p25:
             regime = "Baixo Risco (Mercado Calmo)"
             estilo_regime = "risk-low"
-            desc_regime = f"Abaixo do percentil 25 histórico do ativo ({p25:.1f}%). Oscilação inferior à usual."
+            desc_regime = f"Abaixo do percentil 25 histórico do ativo ({formatar_numero(p25, 1)}%). Oscilação inferior à usual."
         elif vol_pct < p75:
             regime = "Risco Moderado (Normalidade Histórica)"
             estilo_regime = "risk-moderate"
-            desc_regime = f"Entre os percentis 25 e 75 históricos do ativo ({p25:.1f}% a {p75:.1f}%)."
+            desc_regime = f"Entre os percentis 25 e 75 históricos do ativo ({formatar_numero(p25, 1)}% a {formatar_numero(p75, 1)}%)."
         elif vol_pct < p95:
             regime = "Risco Elevado (Atenção / Estresse)"
             estilo_regime = "risk-high"
             desc_regime = (
-                f"Entre os percentis 75 e 95 históricos do ativo ({p75:.1f}% a {p95:.1f}%). "
+                f"Entre os percentis 75 e 95 históricos do ativo ({formatar_numero(p75, 1)}% a {formatar_numero(p95, 1)}%). "
                 "Sugere recalibração de stop loss e cautela em alavancagem."
             )
         else:
             regime = "Risco Extremo (Regime de Crise)"
             estilo_regime = "risk-extreme"
             desc_regime = (
-                f"Acima do percentil 95 histórico do ativo ({p95:.1f}%). "
+                f"Acima do percentil 95 histórico do ativo ({formatar_numero(p95, 1)}%). "
                 "Típico de choques macroeconômicos e crises agudas."
             )
         desc_regime += f" A projeção supera {percentil_atual:.0f}% dos pregões desde {df_ativo['Data'].min():%Y}."
@@ -1628,11 +1699,12 @@ with aba_simulador:
         with col_sim1:
             with secao("projecao"):
                 st.markdown("#### Volatilidade Projetada")
+                como_ler("projecao")
                 st.markdown(
                     f"""
                     <div class="kpi-card kpi-best">
                         <div class="kpi-label">Volatilidade Projetada (t+1)</div>
-                        <div class="kpi-value">{vol_pct:.2f}%</div>
+                        <div class="kpi-value">{formatar_numero(vol_pct, 2)}%</div>
                         <div class="kpi-sub">Projeção anualizada para o pregão seguinte a {data_base}</div>
                     </div>
                     <div style="margin-top: 1.25rem;">
@@ -1646,6 +1718,7 @@ with aba_simulador:
         with col_sim2:
             with secao("var"):
                 st.markdown("#### Calculadora de Value at Risk (VaR Paramétrico)")
+                como_ler("var")
                 patrimonio = st.number_input(
                     "Patrimônio Alocado no Ativo (R$):",
                     min_value=1000.0,

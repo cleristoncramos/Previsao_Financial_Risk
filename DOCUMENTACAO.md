@@ -264,15 +264,19 @@ flowchart TD
 - `metricas_para_csv()`, `dados_para_csv()`: exportações em CSV no padrão do Excel em português.
 - `gerar_relatorio_final()`: grava o relatório e as métricas do pipeline em `relatorios_graficos/`.
 
-### 5.11. Interface
+### 5.11. `src/textos_graficos.py`
+- `TEXTOS_GRAFICOS`: explicações fixas de cada gráfico do painel (o que mostra, como ler e um exemplo), com campos entre chaves preenchidos com os números do ativo e do período.
+- `texto_grafico()`: devolve o texto de uma chave com os campos preenchidos; um campo não informado aparece como "—".
+
+### 5.12. Interface
 - `app.py`: configuração da página, tema, injeção do `assets/style.css` e navegação (`st.navigation`) entre a página inicial (rota `/`) e o painel (rota `/painel`).
 - `paginas/inicio.py`: página inicial e janela de informações acadêmicas (`st.dialog`).
 - `paginas/painel.py`: painel de análise, com as funções em cache, o padrão visual dos painéis e gráficos, o treino sob demanda, a janela **Saiba mais** e a montagem das cinco abas.
 
-### 5.12. `main.py`
+### 5.13. `main.py`
 Pipeline em linha de comando (`argparse`) com as opções `--etapa`, `--usar-dados-locais`, `--nao-mostrar-graficos`, `--ticker` e `--carregar-modelos`.
 
-### 5.13. `scripts/`
+### 5.14. `scripts/`
 - `rasterizar_logos.py`: converte os logotipos SVG em PNG (Chrome ou Edge em modo headless) para uso no vídeo.
 - `gerar_video_apresentacao.py`: gera o vídeo da página inicial (MP4 em H.264 e GIF alternativo) a partir dos dados e modelos reais; o MP4 requer o pacote `imageio-ffmpeg`.
 
@@ -417,7 +421,7 @@ As métricas da MLP podem variar levemente a cada novo treino, porque o treiname
 Frase de efeito, botão **Get Started** (que abre o painel direto na análise exploratória), vídeo curto em MP4 com controles, gerado a partir dos dados reais, números do projeto, tutorial das cinco abas, primeiros passos e a janela **Informações acadêmicas** (instituição, centro, curso, orientador, autora, ano, metodologia e tecnologias, com os logotipos da UFPI e do CEAD).
 
 ### 10.2. Painel (`/painel`)
-- **Barra lateral:** ícone de retorno à página inicial, seleção do ativo, estado da modelagem (com a data da última persistência) e atualização das séries no Yahoo Finance.
+- **Barra lateral:** ícone de retorno à página inicial, seleção do ativo, chave Modo pesquisador, estado da modelagem (com a data da última persistência) e atualização das séries no Yahoo Finance.
 - **Cabeçalho:** título, logotipo, ticker e nome do ativo selecionado.
 - **Saiba mais:** janela com o resumo da metodologia (fórmulas, etapas e dicionário de dados) e links para o README, esta documentação e o notebook. Substitui a antiga aba Fundamentação e Metodologia, cujo código permanece comentado em `paginas/painel.py`.
 
@@ -434,6 +438,10 @@ Frase de efeito, botão **Get Started** (que abre o painel direto na análise ex
 - **Eventos da base:** `assets/eventos.csv`, com as colunas `data`, `categoria`, `titulo` e `descricao`. Categorias: Mercado e crises, Saúde, Política e Mundo. Cada categoria é uma série na legenda do gráfico, que liga e desliga com um clique.
 - **Eventos do usuário:** incluídos por um formulário (data, título e descrição), guardados na sessão do navegador, exportáveis em CSV (ponto e vírgula, datas dd/mm/aaaa) e recarregáveis pelo mesmo arquivo.
 - **Cores dos modelos:** a série real é preta e cada modelo tem uma cor própria (XGBoost laranja, LightGBM verde-azulado, MLP roxo, baseline cinza), definidas em `CORES_MODELOS` (`src/figuras.py`) e usadas tanto no painel quanto nas figuras para download.
+
+### 10.4. Como ler este gráfico e modo pesquisador
+- **Como ler este gráfico:** botão em cada um dos 14 painéis com gráfico ou resultado (análise exploratória, desempenho, interpretabilidade e simulador). O texto é fixo, em linguagem para leigos, e termina com um exemplo calculado na hora para o ativo e o período (pico de volatilidade, maior queda diária, par mais correlacionado, melhor modelo, variável mais importante). A opção por textos fixos, e não gerados por modelo de linguagem, segue a orientação de priorizar explicações revisadas, viáveis para os sete ativos do sistema.
+- **Modo pesquisador:** chave na barra lateral, desligada por padrão. Quando ligada, exibe a validação cruzada temporal, a curva de aprendizado da MLP, o SHAP beeswarm e o LIME, e marca o baseline no gráfico Real contra Modelos. Desligada, esses itens ficam ocultos e a numeração das seções se ajusta. O catálogo de figuras para download continua completo nos dois modos.
 
 ---
 

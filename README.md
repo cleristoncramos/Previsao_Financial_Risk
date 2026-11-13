@@ -86,7 +86,7 @@ O sistema é uma aplicação Streamlit com duas páginas.
 - Botão discreto **Informações acadêmicas**, que abre uma janela com instituição, centro, curso, orientador, autora, ano, metodologia e tecnologias, com os logotipos da UFPI e do CEAD.
 
 ### Painel de análise (rota `/painel`)
-A barra lateral traz o ícone de retorno à página inicial, a **seleção do ativo**, o **estado da modelagem** e o botão **Atualizar Séries Temporais** (novo download do Yahoo Finance). O cabeçalho exibe o logotipo, o ticker e o nome do ativo selecionado. Logo abaixo, o botão **Saiba mais** abre um resumo da metodologia (fórmulas, etapas e dicionário de dados) com links para esta página, a documentação técnica e o notebook.
+A barra lateral traz o ícone de retorno à página inicial, a **seleção do ativo**, a chave **Modo pesquisador**, o **estado da modelagem** e o botão **Atualizar Séries Temporais** (novo download do Yahoo Finance). O cabeçalho exibe o logotipo, o ticker e o nome do ativo selecionado. Logo abaixo, o botão **Saiba mais** abre um resumo da metodologia (fórmulas, etapas e dicionário de dados) com links para esta página, a documentação técnica e o notebook.
 
 | Aba | Conteúdo |
 |---|---|
@@ -97,6 +97,8 @@ A barra lateral traz o ícone de retorno à página inicial, a **seleção do at
 | **Relatórios e Downloads** | Relatório consolidado gerado na hora, CSV de métricas, CSV dos dados do ativo e catálogo de 12 figuras PNG em alta resolução |
 
 **Período e eventos históricos.** No topo da Análise Exploratória, o usuário escolhe o período exibido (atalhos de 1, 2 ou 5 anos, a série inteira ou datas livres). O período vale para os gráficos, as estatísticas e a correlação da aba; os modelos continuam avaliados no período de teste fixo. Os gráficos de preço e de volatilidade marcam eventos que mexeram com o mercado, em linhas pontilhadas por categoria (mercado e crises, saúde, política e mundo), com título e descrição ao passar o mouse. A base fica em `assets/eventos.csv` e inclui, por exemplo, os seis *circuit breakers* de março de 2020, a declaração da pandemia, a invasão da Ucrânia e as eleições. Pelo botão **Adicionar evento próprio**, o usuário inclui os seus eventos, baixa-os em CSV e pode carregá-los de novo em outra visita.
+
+**Como ler este gráfico e modo pesquisador.** Cada gráfico tem um botão **Como ler este gráfico**, que explica em linguagem simples o que ele mostra, como interpretá-lo e um exemplo com os números do ativo e do período selecionados (por exemplo, a data do maior pico de volatilidade). Os textos ficam em `src/textos_graficos.py`, separados do código do painel para facilitar a revisão. Os recursos mais técnicos (validação cruzada temporal, curva de aprendizado da rede neural, SHAP beeswarm e LIME) ficam ocultos por padrão e aparecem ao ligar o **Modo pesquisador** na barra lateral; no gráfico Real contra Modelos, o baseline vem marcado só nesse modo, mas pode ser incluído a qualquer momento.
 
 Convenções adotadas em todo o sistema:
 - **Formato brasileiro** em números, valores monetários, eixos e rótulos de gráficos (vírgula decimal e ponto no milhar) e datas no formato dd/mm/aaaa.
@@ -247,7 +249,8 @@ Previsao_Financial_Risk/
 │   ├── evaluation.py               # Métricas, baseline e validação cruzada
 │   ├── interpretability.py         # SHAP e LIME do pipeline
 │   ├── figuras.py                  # Catálogo de figuras PNG do painel
-│   └── report.py                   # Relatório consolidado e exportação em CSV
+│   ├── report.py                   # Relatório consolidado e exportação em CSV
+│   └── textos_graficos.py          # Textos "Como ler este gráfico" do painel
 ├── scripts/
 │   ├── rasterizar_logos.py         # Converte os logotipos dos ativos em PNG
 │   ├── gerar_video_apresentacao.py # Gera o vídeo da página inicial
