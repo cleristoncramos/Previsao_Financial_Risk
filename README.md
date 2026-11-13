@@ -80,18 +80,17 @@ RMSE e MAE estão na escala da volatilidade anualizada (0,01 = 1 ponto percentua
 O sistema é uma aplicação Streamlit com duas páginas.
 
 ### Página inicial (rota `/`)
-- Apresentação com frase de efeito e botão **Get Started**, que leva ao painel.
-- **Vídeo curto** (animação de cerca de 27 segundos) gerado a partir dos dados reais: logotipos dos ativos, volatilidade histórica, comparação de modelos, importância SHAP e medidor de regime de risco.
-- Números do projeto, **tutorial breve** com as seis abas do painel e **primeiros passos**.
+- Apresentação com frase de efeito e botão **Get Started**, que leva direto à análise exploratória do painel.
+- **Vídeo curto** (MP4 de cerca de 28 segundos, com controles de tocar, pausar e voltar) gerado a partir dos dados reais: logotipos dos ativos, volatilidade histórica, comparação de modelos, importância SHAP e medidor de regime de risco.
+- Números do projeto, **tutorial breve** com as cinco abas do painel e **primeiros passos**.
 - Botão discreto **Informações acadêmicas**, que abre uma janela com instituição, centro, curso, orientador, autora, ano, metodologia e tecnologias, com os logotipos da UFPI e do CEAD.
 
 ### Painel de análise (rota `/painel`)
-A barra lateral traz o ícone de retorno à página inicial, a **seleção do ativo**, o **estado da modelagem** e o botão **Atualizar Séries Temporais** (novo download do Yahoo Finance). O cabeçalho exibe o logotipo, o ticker e o nome do ativo selecionado.
+A barra lateral traz o ícone de retorno à página inicial, a **seleção do ativo**, o **estado da modelagem** e o botão **Atualizar Séries Temporais** (novo download do Yahoo Finance). O cabeçalho exibe o logotipo, o ticker e o nome do ativo selecionado. Logo abaixo, o botão **Saiba mais** abre um resumo da metodologia (fórmulas, etapas e dicionário de dados) com links para esta página, a documentação técnica e o notebook.
 
 | Aba | Conteúdo |
 |---|---|
-| **Fundamentação e Metodologia** | Indicadores da série, problema de pesquisa, formulação matemática, fluxo metodológico e dicionário de dados |
-| **Análise Exploratória** | Preço com médias móveis, volatilidade histórica, distribuição dos retornos contra a Normal, Q-Q plot, assimetria e curtose em excesso, e matriz de correlação entre os ativos (cada par exibido uma única vez) |
+| **Análise Exploratória** | Indicadores da série (registros, período e volatilidade atual), preço com médias móveis, volatilidade histórica, distribuição dos retornos contra a Normal, Q-Q plot, assimetria e curtose em excesso, e matriz de correlação entre os ativos (cada par exibido uma única vez) |
 | **Desempenho dos Modelos** | Métricas no teste, comparação explícita com o baseline, tabela classificada, série real contra previsões, validação cruzada temporal e curva de aprendizado da MLP; treino com um clique para ativos ainda sem modelo |
 | **Interpretabilidade (XAI)** | Importância global e beeswarm SHAP, seleção de um pregão por data e decomposição local da previsão (waterfall SHAP e LIME) |
 | **Simulador de Risco e VaR** | Volatilidade projetada para o próximo pregão, regime de risco relativo ao histórico do ativo e calculadora de VaR diário a 95% e 99% |
@@ -255,7 +254,7 @@ Previsao_Financial_Risk/
 │   ├── style.css                   # Estilo visual do sistema
 │   ├── ativos/                     # Logotipos dos ativos (e PNGs em ativos/png/)
 │   ├── institucional/              # Logotipos da UFPI e do CEAD
-│   └── video/apresentacao.gif      # Vídeo curto da página inicial
+│   └── video/apresentacao.mp4      # Vídeo curto da página inicial (e .gif alternativo)
 ├── .streamlit/config.toml          # Tema do Streamlit
 ├── dados_coletados/                # Séries históricas em CSV
 ├── modelos_salvos/                 # Modelos do ativo de referência (demais em por_ativo/)
@@ -339,7 +338,7 @@ python scripts/rasterizar_logos.py
 python scripts/gerar_video_apresentacao.py
 ```
 
-O primeiro script usa o Chrome ou o Edge instalados, em modo headless, para converter os logotipos SVG em PNG.
+O primeiro script usa o Chrome ou o Edge instalados, em modo headless, para converter os logotipos SVG em PNG. O segundo grava o vídeo em MP4 (exibido na página) e em GIF (alternativa); o MP4 requer o pacote `imageio-ffmpeg` (`pip install imageio-ffmpeg`).
 
 ---
 

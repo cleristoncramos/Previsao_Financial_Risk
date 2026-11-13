@@ -21,7 +21,9 @@ if str(BASE_DIR) not in sys.path:
 from src.config import ATIVOS, TICKER_REF
 from src.data_collection import carregar_ativo_local
 
-VIDEO_APRESENTACAO = BASE_DIR / "assets" / "video" / "apresentacao.gif"
+# MP4 com controles (tocar, pausar, voltar ao início); o GIF é a alternativa se o MP4 não existir
+VIDEO_APRESENTACAO = BASE_DIR / "assets" / "video" / "apresentacao.mp4"
+VIDEO_ALTERNATIVO = VIDEO_APRESENTACAO.with_suffix(".gif")
 LOGOS_INSTITUCIONAIS = BASE_DIR / "assets" / "institucional"
 
 
@@ -115,7 +117,9 @@ with st.container(key="landing_hero"):
 
     with col_video:
         if VIDEO_APRESENTACAO.exists():
-            st.image(str(VIDEO_APRESENTACAO), use_container_width=True)
+            st.video(str(VIDEO_APRESENTACAO), autoplay=True, loop=True, muted=True)
+        elif VIDEO_ALTERNATIVO.exists():
+            st.image(str(VIDEO_ALTERNATIVO), use_container_width=True)
         else:
             st.info("Vídeo de apresentação indisponível.")
 
@@ -146,33 +150,33 @@ st.markdown(
         <div class="landing-grade">
             <div class="landing-cartao">
                 <div class="landing-cartao-num">01</div>
-                <h3>Fundamentação e Metodologia</h3>
-                <p>Problema de pesquisa, fórmulas da volatilidade, fluxo metodológico e dicionário de dados.</p>
-            </div>
-            <div class="landing-cartao">
-                <div class="landing-cartao-num">02</div>
                 <h3>Análise Exploratória</h3>
                 <p>Preços e médias móveis, volatilidade histórica, caudas pesadas e correlação entre ativos.</p>
             </div>
             <div class="landing-cartao">
-                <div class="landing-cartao-num">03</div>
+                <div class="landing-cartao-num">02</div>
                 <h3>Desempenho dos Modelos</h3>
                 <p>RMSE, MAE e R² no período de teste, comparação com a regra de persistência e validação cruzada.</p>
             </div>
             <div class="landing-cartao">
-                <div class="landing-cartao-num">04</div>
+                <div class="landing-cartao-num">03</div>
                 <h3>Interpretabilidade (XAI)</h3>
                 <p>Quais variáveis mais pesam na previsão e a decomposição de um pregão escolhido por data.</p>
             </div>
             <div class="landing-cartao">
-                <div class="landing-cartao-num">05</div>
+                <div class="landing-cartao-num">04</div>
                 <h3>Simulador de Risco e VaR</h3>
                 <p>Volatilidade projetada para o próximo pregão, regime de risco e perda máxima provável em reais.</p>
             </div>
             <div class="landing-cartao">
-                <div class="landing-cartao-num">06</div>
+                <div class="landing-cartao-num">05</div>
                 <h3>Relatórios e Downloads</h3>
                 <p>Relatório consolidado, tabela de métricas, dados do ativo e catálogo de figuras em alta resolução.</p>
+            </div>
+            <div class="landing-cartao">
+                <div class="landing-cartao-num">+</div>
+                <h3>Saiba mais</h3>
+                <p>Resumo da metodologia, fórmulas e dicionário de dados, num botão no topo do painel.</p>
             </div>
         </div>
     </div>
@@ -189,7 +193,7 @@ st.markdown(
         <div class="landing-secao-rotulo">Primeiros passos</div>
         <h2>Comece em cinco passos</h2>
         <ol class="landing-passos">
-            <li><strong>Entre no painel</strong> pelo botão <em>Get Started</em>.</li>
+            <li><strong>Entre no painel</strong> pelo botão <em>Get Started</em>: ele abre direto na análise exploratória.</li>
             <li><strong>Escolha o ativo</strong> na barra lateral. O IBOVESPA (^BVSP) é a referência do estudo e já vem com modelos treinados.</li>
             <li><strong>Treine os modelos</strong> do ativo, se o painel indicar que ainda não existem: basta um clique na aba <em>Desempenho dos Modelos</em>.</li>
             <li><strong>Explore as análises</strong>: compare os modelos, escolha um pregão na aba de interpretabilidade e simule o VaR com o seu patrimônio.</li>

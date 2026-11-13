@@ -267,14 +267,14 @@ flowchart TD
 ### 5.11. Interface
 - `app.py`: configuração da página, tema, injeção do `assets/style.css` e navegação (`st.navigation`) entre a página inicial (rota `/`) e o painel (rota `/painel`).
 - `paginas/inicio.py`: página inicial e janela de informações acadêmicas (`st.dialog`).
-- `paginas/painel.py`: painel de análise, com as funções em cache, o padrão visual dos painéis e gráficos, o treino sob demanda e a montagem das seis abas.
+- `paginas/painel.py`: painel de análise, com as funções em cache, o padrão visual dos painéis e gráficos, o treino sob demanda, a janela **Saiba mais** e a montagem das cinco abas.
 
 ### 5.12. `main.py`
 Pipeline em linha de comando (`argparse`) com as opções `--etapa`, `--usar-dados-locais`, `--nao-mostrar-graficos`, `--ticker` e `--carregar-modelos`.
 
 ### 5.13. `scripts/`
 - `rasterizar_logos.py`: converte os logotipos SVG em PNG (Chrome ou Edge em modo headless) para uso no vídeo.
-- `gerar_video_apresentacao.py`: gera o vídeo da página inicial a partir dos dados e modelos reais.
+- `gerar_video_apresentacao.py`: gera o vídeo da página inicial (MP4 em H.264 e GIF alternativo) a partir dos dados e modelos reais; o MP4 requer o pacote `imageio-ffmpeg`.
 
 ---
 
@@ -414,16 +414,16 @@ As métricas da MLP podem variar levemente a cada novo treino, porque o treiname
 ## 10. Painel interativo
 
 ### 10.1. Página inicial (`/`)
-Frase de efeito, botão **Get Started**, vídeo curto gerado a partir dos dados reais, números do projeto, tutorial das seis abas, primeiros passos e a janela **Informações acadêmicas** (instituição, centro, curso, orientador, autora, ano, metodologia e tecnologias, com os logotipos da UFPI e do CEAD).
+Frase de efeito, botão **Get Started** (que abre o painel direto na análise exploratória), vídeo curto em MP4 com controles, gerado a partir dos dados reais, números do projeto, tutorial das cinco abas, primeiros passos e a janela **Informações acadêmicas** (instituição, centro, curso, orientador, autora, ano, metodologia e tecnologias, com os logotipos da UFPI e do CEAD).
 
 ### 10.2. Painel (`/painel`)
 - **Barra lateral:** ícone de retorno à página inicial, seleção do ativo, estado da modelagem (com a data da última persistência) e atualização das séries no Yahoo Finance.
 - **Cabeçalho:** título, logotipo, ticker e nome do ativo selecionado.
+- **Saiba mais:** janela com o resumo da metodologia (fórmulas, etapas e dicionário de dados) e links para o README, esta documentação e o notebook. Substitui a antiga aba Fundamentação e Metodologia, cujo código permanece comentado em `paginas/painel.py`.
 
 | Aba | Conteúdo |
 |---|---|
-| Fundamentação e Metodologia | Indicadores da série, problema de pesquisa, fórmulas, fluxo metodológico e dicionário de dados |
-| Análise Exploratória | Preço e médias, volatilidade, distribuição contra a Normal, Q-Q plot, assimetria, curtose em excesso e matriz de correlação em triângulo |
+| Análise Exploratória | Indicadores da série, preço e médias, volatilidade, distribuição contra a Normal, Q-Q plot, assimetria, curtose em excesso e matriz de correlação em triângulo |
 | Desempenho dos Modelos | Métricas, comparação com o baseline, tabela classificada, real contra previsões, validação cruzada e curva de aprendizado da MLP; treino com um clique para ativos sem modelo |
 | Interpretabilidade (XAI) | SHAP global e beeswarm; seleção de pregão por data com waterfall e LIME |
 | Simulador de Risco e VaR | Volatilidade projetada, medidor de regime e VaR diário a 95% e 99% |

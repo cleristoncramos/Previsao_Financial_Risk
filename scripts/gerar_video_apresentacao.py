@@ -1,14 +1,17 @@
 """
-Gera o vídeo curto de apresentação da página inicial (assets/video/apresentacao.gif).
+Gera o vídeo curto de apresentação da página inicial (assets/video/apresentacao.mp4 e .gif).
 
 Animação de ~25 segundos com dados reais: cartões com os logotipos e a minissérie de
 preço de cada ativo, a volatilidade do ativo de referência (^BVSP) com o pico da
 pandemia, o RMSE dos modelos salvos, a importância SHAP do XGBoost e um medidor do
 regime de risco com o VaR projetado. Transições suaves entre as cenas e elementos
-com entrada em sequência. Formato GIF para tocar automaticamente no navegador sem
-dependências externas (ffmpeg).
+com entrada em sequência.
 
-Pré-requisito: logotipos em PNG (python scripts/rasterizar_logos.py).
+O MP4 (H.264) é o formato exibido na página inicial: tem controles de tocar, pausar e
+voltar ao início. O GIF é mantido como alternativa, usada pela página se o MP4 não existir.
+
+Pré-requisitos: logotipos em PNG (python scripts/rasterizar_logos.py) e, para o MP4,
+o codificador imageio-ffmpeg (pip install imageio-ffmpeg). Sem ele, só o GIF é gerado.
 
 Uso (na raiz do projeto):
     python scripts/gerar_video_apresentacao.py
@@ -38,6 +41,7 @@ from src.data_collection import carregar_ativo_local
 from src.model_store import carregar_modelos_salvos
 
 SAIDA = BASE_DIR / "assets" / "video" / "apresentacao.gif"
+SAIDA_MP4 = SAIDA.with_suffix(".mp4")
 LOGOS = BASE_DIR / "assets" / "ativos" / "png"
 LARGURA, ALTURA, DPI = 12.8, 7.2, 100  # 1280 x 720 px
 QPS = 12  # quadros por segundo
@@ -464,6 +468,25 @@ def main():
     )
     print(f"{len(video)} quadros ({len(video) / QPS:.1f} s, {QPS} quadros/s) salvos em {SAIDA}")
     print(f"Tamanho: {SAIDA.stat().st_size / 1024:.0f} KB")
+    salvar_mp4(video)
+
+
+def salvar_mp4(video):
+    """Grava o MP4 em H.264 (yuv420p e faststart, para tocar em qualquer navegador)."""
+    try:
+        import imageio_ffmpeg
+    except ImportError:
+        print("imageio-ffmpeg não instalado; MP4 não gerado (pip install imageio-ffmpeg).")
+        return
+    escritor = imageio_ffmpeg.write_frames(
+        str(SAIDA_MP4), video[0].size, fps=QPS, codec="libx264", pix_fmt_out="yuv420p",
+        quality=8, macro_block_size=16, output_params=["-movflags", "+faststart"],
+    )
+    escritor.send(None)
+    for quadro in video:
+        escritor.send(quadro.convert("RGB").tobytes())
+    escritor.close()
+    print(f"MP4 salvo em {SAIDA_MP4} ({SAIDA_MP4.stat().st_size / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":

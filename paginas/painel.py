@@ -361,6 +361,65 @@ with st.sidebar:
         st.caption(st.session_state.pop("msg_atualizacao"))
 
 # =============================================================================
+# SAIBA MAIS: resumo teórico e metodológico, fora das abas
+# =============================================================================
+URL_REPOSITORIO = "https://github.com/cleristoncramos/Previsao_Financial_Risk"
+
+
+@st.dialog("Saiba mais", width="large")
+def saiba_mais():
+    st.markdown(
+        """
+        **O que o painel faz.** Prevê a volatilidade do pregão seguinte ($t+1$) de ações da B3 e índices de
+        mercado, compara modelos de Machine Learning com uma regra simples de referência, explica cada
+        previsão (XAI) e traduz o risco projetado em Value at Risk.
+        """
+    )
+
+    col_formulas, col_fluxo = st.columns(2, gap="large")
+    with col_formulas:
+        st.markdown("##### Como a volatilidade é calculada")
+        st.caption("Retorno diário")
+        st.latex(r"R_t = \frac{P_t - P_{t-1}}{P_{t-1}}")
+        st.caption("Volatilidade anualizada (janela de 21 pregões)")
+        st.latex(r"\sigma_{t} = \text{desvio-padrão}(R_{t-20}, \dots, R_t) \times \sqrt{252}")
+        st.caption("O que os modelos preveem")
+        st.latex(r"Y_t = \sigma_{t+1}")
+    with col_fluxo:
+        st.markdown("##### Etapas")
+        st.markdown(
+            """
+            1. **Coleta:** séries diárias do Yahoo Finance, de 2016 até hoje.
+            2. **Análise exploratória:** tendência, volatilidade, caudas pesadas e correlação.
+            3. **Preparação:** 80% iniciais para treino e 20% finais para teste, sem embaralhar.
+            4. **Modelos:** XGBoost, LightGBM e Rede Neural MLP, comparados à regra de persistência
+               (amanhã igual a hoje).
+            5. **Avaliação:** RMSE, MAE, R² e validação cruzada temporal.
+            6. **Explicabilidade:** SHAP e LIME mostram o peso de cada variável.
+            """
+        )
+
+    with st.expander("Dicionário de dados"):
+        dicionario = [
+            {"Coluna": "Close", "Significado": "Preço de fechamento ajustado por proventos e desdobramentos"},
+            {"Coluna": "Volume", "Significado": "Quantidade de ações (ou contratos) negociada no pregão"},
+            {"Coluna": "Retorno_Diario", "Significado": "Variação percentual do fechamento em relação ao pregão anterior"},
+            {"Coluna": "Volatilidade_21d", "Significado": "Volatilidade anualizada dos últimos 21 pregões"},
+            {"Coluna": "MM_20d / MM_50d", "Significado": "Médias móveis de 20 e 50 pregões (tendência de curto e médio prazo)"},
+            {"Coluna": "RSI_14d", "Significado": "Índice de Força Relativa, de 0 a 100 (acima de 70, sobrecompra; abaixo de 30, sobrevenda)"},
+            {"Coluna": "Volume_MM20", "Significado": "Média do volume dos últimos 20 pregões"},
+            {"Coluna": "Target_Vol", "Significado": "Volatilidade do pregão seguinte: o valor que os modelos preveem"},
+        ]
+        st.dataframe(pd.DataFrame(dicionario), use_container_width=True, hide_index=True)
+
+    st.markdown(
+        f"Para ler mais: [README]({URL_REPOSITORIO}#readme) · "
+        f"[Documentação técnica]({URL_REPOSITORIO}/blob/main/DOCUMENTACAO.md) · "
+        f"[Notebook passo a passo]({URL_REPOSITORIO}/blob/main/TCC_Previsao_Riscos_Financeiros.ipynb)"
+    )
+
+
+# =============================================================================
 # CABEÇALHO PRINCIPAL
 # =============================================================================
 st.markdown(
@@ -380,6 +439,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+with st.container(key="barra_saiba_mais"):
+    if st.button("Saiba mais", icon=":material/menu_book:", type="tertiary", key="btn_saiba_mais"):
+        saiba_mais()
+
 # Carregamento do ativo em foco
 df_ativo = carregar_dados_ativo_cached(ticker_selecionado)
 
@@ -392,11 +455,10 @@ dataset = preparar_dataset_cached(df_ativo)
 X_test_scaled = scaler_salvo.transform(dataset.X_test) if tem_modelos else None
 
 # =============================================================================
-# NAVEGAÇÃO EM ABAS (ESTRUTURA METODOLÓGICA COMPLETA)
+# NAVEGAÇÃO EM ABAS (o painel abre direto na análise exploratória)
 # =============================================================================
-aba_visao, aba_eda, aba_modelos, aba_xai, aba_simulador, aba_relatorios = st.tabs(
+aba_eda, aba_modelos, aba_xai, aba_simulador, aba_relatorios = st.tabs(
     [
-        "Fundamentação e Metodologia",
         "Análise Exploratória",
         "Desempenho dos Modelos",
         "Interpretabilidade (XAI)",
@@ -406,12 +468,153 @@ aba_visao, aba_eda, aba_modelos, aba_xai, aba_simulador, aba_relatorios = st.tab
 )
 
 # =============================================================================
-# ABA 1: FUNDAMENTAÇÃO & METODOLOGIA
+# ABA FUNDAMENTAÇÃO & METODOLOGIA (DESATIVADA)
+# O conteúdo teórico saiu das abas para o botão "Saiba mais" (janela saiba_mais()), para
+# que o painel abra direto nas análises. O código original fica preservado abaixo, comentado,
+# para eventual reaproveitamento. Os indicadores da série foram para a aba Análise Exploratória.
 # =============================================================================
-with aba_visao:
-    st.markdown("### Contextualização Teórica e Metodológica")
+# with aba_visao:
+#     st.markdown("### Contextualização Teórica e Metodológica")
+#
+#     with linha("kpi_visao"):
+#         col_res1, col_res2, col_res3, col_res4 = st.columns(4, gap="large")
+#         with col_res1:
+#             st.markdown(
+#                 f"""
+#                 <div class="kpi-card kpi-best">
+#                     <div class="kpi-label">Registros Históricos</div>
+#                     <div class="kpi-value">{formatar_numero(len(df_ativo), 0)}</div>
+#                     <div class="kpi-sub">Pregões diários válidos</div>
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#         with col_res2:
+#             dt_inicio = df_ativo["Data"].min().strftime("%d/%m/%Y")
+#             st.markdown(
+#                 f"""
+#                 <div class="kpi-card">
+#                     <div class="kpi-label">Marco Inicial</div>
+#                     <div class="kpi-value" style="font-size: 1.25rem;">{dt_inicio}</div>
+#                     <div class="kpi-sub">Início da série temporal</div>
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#         with col_res3:
+#             dt_fim = df_ativo["Data"].max().strftime("%d/%m/%Y")
+#             st.markdown(
+#                 f"""
+#                 <div class="kpi-card">
+#                     <div class="kpi-label">Marco Final</div>
+#                     <div class="kpi-value" style="font-size: 1.25rem;">{dt_fim}</div>
+#                     <div class="kpi-sub">Data da última cotação</div>
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#         with col_res4:
+#             vol_recente = df_ativo["Volatilidade_21d"].iloc[-1] * 100
+#             st.markdown(
+#                 f"""
+#                 <div class="kpi-card kpi-good">
+#                     <div class="kpi-label">Volatilidade Atual (21d)</div>
+#                     <div class="kpi-value">{formatar_numero(vol_recente, 2)}%</div>
+#                     <div class="kpi-sub">Anualizada no último pregão</div>
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#
+#     col_teo1, col_teo2 = st.columns([1.1, 0.9], gap="large")
+#
+#     with col_teo1:
+#         with secao("problema"):
+#             st.markdown("#### Problema de Pesquisa e Relevância")
+#             st.markdown(
+#                 """
+#                 A gestão de riscos e a quantificação da incerteza no mercado de capitais constituem um dos pilares
+#                 da moderna teoria de finanças e dos acordos regulatórios de Basileia. O presente Trabalho de Conclusão
+#                 de Curso (TCC) desenvolve e avalia um pipeline de Ciência de Dados ponta a ponta projetado para prever a
+#                 **volatilidade histórica anualizada no horizonte de 1 dia à frente ($t+1$)**.
+#
+#                 A abordagem soluciona criticidades fundamentais em **Gestão de Dados**:
+#                 1. **Qualidade e Tratamento:** Ingestão de séries históricas higienizadas de proventos e desdobramentos.
+#                 2. **Temporalidade Estrita:** Eliminação de viés de antecipação (*look-ahead bias*) e vazamento de dados (*data leakage*).
+#                 3. **Transparência Algorítmica:** Aplicação de Inteligência Artificial Explicável (XAI) para auditoria e governança regulatória.
+#                 """
+#             )
+#
+#         with secao("formulacao"):
+#             st.markdown("#### Formulação Matemática")
+#             # Rótulos fora do LaTeX para as fórmulas caberem na largura da coluna
+#             st.caption("Retorno diário aritmético")
+#             st.latex(r"R_t = \frac{P_t - P_{t-1}}{P_{t-1}}")
+#             st.caption("Volatilidade anualizada (janela de 21 pregões)")
+#             st.latex(r"\sigma_{t, 21d} = \sqrt{\frac{1}{20} \sum_{i=0}^{20} (R_{t-i} - \bar{R}_t)^2} \times \sqrt{252}")
+#             st.caption("Variável-alvo modelada via shift(-1)")
+#             st.latex(r"Y_t = \sigma_{t+1, 21d}")
+#
+#     with col_teo2:
+#         with secao("fluxo"):
+#             st.markdown("#### Arquitetura do Fluxo Metodológico")
+#             st.markdown(
+#                 """
+#                 <div class="theory-box">
+#                     <div class="theory-title">1. Coleta e Ingestão</div>
+#                     Dados diários automáticos via Yahoo Finance API (2016 até hoje).
+#                 </div>
+#                 <div class="theory-box">
+#                     <div class="theory-title">2. Análise Exploratória (EDA)</div>
+#                     Fatos estilizados, testes de curtose leptocúrtica e matrizes de correlação.
+#                 </div>
+#                 <div class="theory-box">
+#                     <div class="theory-title">3. Pré-processamento Temporal</div>
+#                     Split sequencial 80% treino / 20% teste sem shuffle. StandardScaler ajustado apenas no treino.
+#                 </div>
+#                 <div class="theory-box">
+#                     <div class="theory-title">4. Modelagem Supervisionada Multimodelo</div>
+#                     XGBoost, LightGBM, Rede Neural MLP (Keras) e Baseline Ingênuo de persistência.
+#                 </div>
+#                 <div class="theory-box">
+#                     <div class="theory-title">5. Validação e Avaliação Robusta</div>
+#                     RMSE, MAE, R² e Validação Cruzada Temporal (TimeSeriesSplit com 5 folds).
+#                 </div>
+#                 <div class="theory-box">
+#                     <div class="theory-title">6. Governança e XAI</div>
+#                     Explicabilidade global e local com SHAP (Shapley Additive exPlanations) e LIME.
+#                 </div>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#
+#     # Tabela de Dicionário de Dados
+#     with secao("dicionario"):
+#         st.markdown("#### Dicionário de Dados e Features Preditivas")
+#         dicionario = [
+#             {"Coluna": "Data", "Tipo": "datetime64", "Papel": "Eixo Temporal", "Interpretação": "Data oficial de encerramento do pregão da B3."},
+#             {"Coluna": "Close", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Preço de fechamento ajustado para dividendos e desdobramentos."},
+#             {"Coluna": "Volume", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Volume financeiro negociado no dia."},
+#             {"Coluna": "Retorno_Diario", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Variação percentual diária de preço."},
+#             {"Coluna": "Volatilidade_21d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Volatilidade histórica anualizada em janela móvel de 21 dias úteis."},
+#             {"Coluna": "MM_20d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de 20 pregões (tendência de curto prazo)."},
+#             {"Coluna": "MM_50d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de 50 pregões (suporte/resistência de médio prazo)."},
+#             {"Coluna": "RSI_14d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Índice de Força Relativa (oscilador de momentum [0, 100])."},
+#             {"Coluna": "Volume_MM20", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de volume negociado em 20 dias."},
+#             {"Coluna": "Target_Vol", "Tipo": "float64", "Papel": "Variável-Alvo", "Interpretação": "Volatilidade observada no pregão seguinte (t+1)."},
+#         ]
+#         with st.expander("Exibir dicionário de dados", expanded=False):
+#             st.dataframe(pd.DataFrame(dicionario), use_container_width=True, hide_index=True)
 
-    with linha("kpi_visao"):
+
+# =============================================================================
+# ABA 1: ANÁLISE EXPLORATÓRIA (EDA) & FATOS ESTILIZADOS
+# =============================================================================
+with aba_eda:
+    st.markdown(f"### Análise Exploratória de Dados — {ticker_selecionado}")
+
+    # Indicadores da série do ativo
+    with linha("kpi_serie"):
         col_res1, col_res2, col_res3, col_res4 = st.columns(4, gap="large")
         with col_res1:
             st.markdown(
@@ -460,93 +663,6 @@ with aba_visao:
                 """,
                 unsafe_allow_html=True,
             )
-
-    col_teo1, col_teo2 = st.columns([1.1, 0.9], gap="large")
-
-    with col_teo1:
-        with secao("problema"):
-            st.markdown("#### Problema de Pesquisa e Relevância")
-            st.markdown(
-                """
-                A gestão de riscos e a quantificação da incerteza no mercado de capitais constituem um dos pilares
-                da moderna teoria de finanças e dos acordos regulatórios de Basileia. O presente Trabalho de Conclusão
-                de Curso (TCC) desenvolve e avalia um pipeline de Ciência de Dados ponta a ponta projetado para prever a
-                **volatilidade histórica anualizada no horizonte de 1 dia à frente ($t+1$)**.
-
-                A abordagem soluciona criticidades fundamentais em **Gestão de Dados**:
-                1. **Qualidade e Tratamento:** Ingestão de séries históricas higienizadas de proventos e desdobramentos.
-                2. **Temporalidade Estrita:** Eliminação de viés de antecipação (*look-ahead bias*) e vazamento de dados (*data leakage*).
-                3. **Transparência Algorítmica:** Aplicação de Inteligência Artificial Explicável (XAI) para auditoria e governança regulatória.
-                """
-            )
-
-        with secao("formulacao"):
-            st.markdown("#### Formulação Matemática")
-            # Rótulos fora do LaTeX para as fórmulas caberem na largura da coluna
-            st.caption("Retorno diário aritmético")
-            st.latex(r"R_t = \frac{P_t - P_{t-1}}{P_{t-1}}")
-            st.caption("Volatilidade anualizada (janela de 21 pregões)")
-            st.latex(r"\sigma_{t, 21d} = \sqrt{\frac{1}{20} \sum_{i=0}^{20} (R_{t-i} - \bar{R}_t)^2} \times \sqrt{252}")
-            st.caption("Variável-alvo modelada via shift(-1)")
-            st.latex(r"Y_t = \sigma_{t+1, 21d}")
-
-    with col_teo2:
-        with secao("fluxo"):
-            st.markdown("#### Arquitetura do Fluxo Metodológico")
-            st.markdown(
-                """
-                <div class="theory-box">
-                    <div class="theory-title">1. Coleta e Ingestão</div>
-                    Dados diários automáticos via Yahoo Finance API (2016 até hoje).
-                </div>
-                <div class="theory-box">
-                    <div class="theory-title">2. Análise Exploratória (EDA)</div>
-                    Fatos estilizados, testes de curtose leptocúrtica e matrizes de correlação.
-                </div>
-                <div class="theory-box">
-                    <div class="theory-title">3. Pré-processamento Temporal</div>
-                    Split sequencial 80% treino / 20% teste sem shuffle. StandardScaler ajustado apenas no treino.
-                </div>
-                <div class="theory-box">
-                    <div class="theory-title">4. Modelagem Supervisionada Multimodelo</div>
-                    XGBoost, LightGBM, Rede Neural MLP (Keras) e Baseline Ingênuo de persistência.
-                </div>
-                <div class="theory-box">
-                    <div class="theory-title">5. Validação e Avaliação Robusta</div>
-                    RMSE, MAE, R² e Validação Cruzada Temporal (TimeSeriesSplit com 5 folds).
-                </div>
-                <div class="theory-box">
-                    <div class="theory-title">6. Governança e XAI</div>
-                    Explicabilidade global e local com SHAP (Shapley Additive exPlanations) e LIME.
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    # Tabela de Dicionário de Dados
-    with secao("dicionario"):
-        st.markdown("#### Dicionário de Dados e Features Preditivas")
-        dicionario = [
-            {"Coluna": "Data", "Tipo": "datetime64", "Papel": "Eixo Temporal", "Interpretação": "Data oficial de encerramento do pregão da B3."},
-            {"Coluna": "Close", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Preço de fechamento ajustado para dividendos e desdobramentos."},
-            {"Coluna": "Volume", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Volume financeiro negociado no dia."},
-            {"Coluna": "Retorno_Diario", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Variação percentual diária de preço."},
-            {"Coluna": "Volatilidade_21d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Volatilidade histórica anualizada em janela móvel de 21 dias úteis."},
-            {"Coluna": "MM_20d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de 20 pregões (tendência de curto prazo)."},
-            {"Coluna": "MM_50d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de 50 pregões (suporte/resistência de médio prazo)."},
-            {"Coluna": "RSI_14d", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Índice de Força Relativa (oscilador de momentum [0, 100])."},
-            {"Coluna": "Volume_MM20", "Tipo": "float64", "Papel": "Feature", "Interpretação": "Média móvel de volume negociado em 20 dias."},
-            {"Coluna": "Target_Vol", "Tipo": "float64", "Papel": "Variável-Alvo", "Interpretação": "Volatilidade observada no pregão seguinte (t+1)."},
-        ]
-        with st.expander("Exibir dicionário de dados", expanded=False):
-            st.dataframe(pd.DataFrame(dicionario), use_container_width=True, hide_index=True)
-
-
-# =============================================================================
-# ABA 2: ANÁLISE EXPLORATÓRIA (EDA) & FATOS ESTILIZADOS
-# =============================================================================
-with aba_eda:
-    st.markdown(f"### Análise Exploratória de Dados — {ticker_selecionado}")
 
     # Gráfico 1: Preço de Fechamento e Médias Móveis
     with secao("eda_precos"):
@@ -747,7 +863,7 @@ with aba_eda:
 
 
 # =============================================================================
-# ABA 3: DESEMPENHO DOS MODELOS & VALIDAÇÃO
+# ABA 2: DESEMPENHO DOS MODELOS & VALIDAÇÃO
 # =============================================================================
 with aba_modelos:
     st.markdown("### Desempenho dos Modelos e Validação Temporal")
@@ -1012,7 +1128,7 @@ with aba_modelos:
 
 
 # =============================================================================
-# ABA 4: INTERPRETABILIDADE & GOVERNANÇA (XAI)
+# ABA 3: INTERPRETABILIDADE & GOVERNANÇA (XAI)
 # =============================================================================
 with aba_xai:
     st.markdown("### Inteligência Artificial Explicável (XAI) e Governança")
@@ -1242,7 +1358,7 @@ with aba_xai:
 
 
 # =============================================================================
-# ABA 5: SIMULADOR DE RISCO (t+1) & VALUE AT RISK (VaR)
+# ABA 4: SIMULADOR DE RISCO (t+1) & VALUE AT RISK (VaR)
 # =============================================================================
 with aba_simulador:
     st.markdown("### Projeção de Risco para o Próximo Pregão ($t+1$) e Value at Risk (VaR)")
@@ -1372,7 +1488,7 @@ with aba_simulador:
 
 
 # =============================================================================
-# ABA 6: RELATÓRIOS & DOWNLOADS
+# ABA 5: RELATÓRIOS & DOWNLOADS
 # =============================================================================
 with aba_relatorios:
     st.markdown("### Relatório Executivo e Exportação de Artefatos")

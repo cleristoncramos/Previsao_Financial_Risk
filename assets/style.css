@@ -223,7 +223,7 @@ h4 {
 }
 
 /* --------------------------------------------------------------
-   Abas de navegação: 6 colunas iguais com quebra de linha
+   Abas de navegação: 5 colunas iguais com quebra de linha
    -------------------------------------------------------------- */
 /* As abas se adaptam à largura útil do conteúdo (não à da janela) */
 [data-testid="stTabs"] {
@@ -232,7 +232,7 @@ h4 {
 
 [data-testid="stTabs"] [role="tablist"] {
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0 !important;
     width: 100%;
     border: 1px solid var(--cor-borda) !important;
@@ -878,11 +878,19 @@ h1.landing-titulo {
 }
 
 /* Botão discreto de informações acadêmicas: alinhado à direita, com respiro nas margens */
-[class*="st-key-btn_info_academica"] {
+[class*="st-key-btn_info_academica"],
+[class*="st-key-btn_saiba_mais"] {
     display: flex;
     justify-content: flex-end;
 }
 
+/* "Saiba mais" do painel: logo abaixo do cabeçalho, sem afastar demais as abas */
+[class*="st-key-barra_saiba_mais"] {
+    align-items: flex-end;
+    margin: -1.2rem 0 0.6rem 0;
+}
+
+[class*="st-key-btn_saiba_mais"] button,
 [class*="st-key-btn_info_academica"] button {
     width: auto !important;
     white-space: nowrap;
@@ -892,6 +900,7 @@ h1.landing-titulo {
     gap: 0.45rem;
 }
 
+[class*="st-key-btn_saiba_mais"] button:hover,
 [class*="st-key-btn_info_academica"] button:hover {
     border-color: var(--cor-marinho) !important;
     background: #eef2fb;
