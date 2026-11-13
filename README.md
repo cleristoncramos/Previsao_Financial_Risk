@@ -90,11 +90,13 @@ A barra lateral traz o ícone de retorno à página inicial, a **seleção do at
 
 | Aba | Conteúdo |
 |---|---|
-| **Análise Exploratória** | Indicadores da série (registros, período e volatilidade atual), preço com médias móveis, volatilidade histórica, distribuição dos retornos contra a Normal, Q-Q plot, assimetria e curtose em excesso, e matriz de correlação entre os ativos (cada par exibido uma única vez) |
+| **Análise Exploratória** | Seletor de período (1, 2 ou 5 anos, tudo ou datas livres) e marcadores de eventos históricos, com a opção de adicionar eventos próprios; indicadores do período, preço com médias móveis, volatilidade histórica, distribuição dos retornos contra a Normal, Q-Q plot, assimetria e curtose em excesso, e matriz de correlação entre os ativos (cada par exibido uma única vez) |
 | **Desempenho dos Modelos** | Métricas no teste, comparação explícita com o baseline, tabela classificada, série real contra previsões, validação cruzada temporal e curva de aprendizado da MLP; treino com um clique para ativos ainda sem modelo |
 | **Interpretabilidade (XAI)** | Importância global e beeswarm SHAP, seleção de um pregão por data e decomposição local da previsão (waterfall SHAP e LIME) |
 | **Simulador de Risco e VaR** | Volatilidade projetada para o próximo pregão, regime de risco relativo ao histórico do ativo e calculadora de VaR diário a 95% e 99% |
 | **Relatórios e Downloads** | Relatório consolidado gerado na hora, CSV de métricas, CSV dos dados do ativo e catálogo de 12 figuras PNG em alta resolução |
+
+**Período e eventos históricos.** No topo da Análise Exploratória, o usuário escolhe o período exibido (atalhos de 1, 2 ou 5 anos, a série inteira ou datas livres). O período vale para os gráficos, as estatísticas e a correlação da aba; os modelos continuam avaliados no período de teste fixo. Os gráficos de preço e de volatilidade marcam eventos que mexeram com o mercado, em linhas pontilhadas por categoria (mercado e crises, saúde, política e mundo), com título e descrição ao passar o mouse. A base fica em `assets/eventos.csv` e inclui, por exemplo, os seis *circuit breakers* de março de 2020, a declaração da pandemia, a invasão da Ucrânia e as eleições. Pelo botão **Adicionar evento próprio**, o usuário inclui os seus eventos, baixa-os em CSV e pode carregá-los de novo em outra visita.
 
 Convenções adotadas em todo o sistema:
 - **Formato brasileiro** em números, valores monetários, eixos e rótulos de gráficos (vírgula decimal e ponto no milhar) e datas no formato dd/mm/aaaa.
@@ -254,6 +256,7 @@ Previsao_Financial_Risk/
 │   ├── style.css                   # Estilo visual do sistema
 │   ├── ativos/                     # Logotipos dos ativos (e PNGs em ativos/png/)
 │   ├── institucional/              # Logotipos da UFPI e do CEAD
+│   ├── eventos.csv                 # Eventos históricos marcados nos gráficos
 │   └── video/apresentacao.mp4      # Vídeo curto da página inicial (e .gif alternativo)
 ├── .streamlit/config.toml          # Tema do Streamlit
 ├── dados_coletados/                # Séries históricas em CSV

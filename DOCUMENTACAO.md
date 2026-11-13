@@ -423,11 +423,17 @@ Frase de efeito, botão **Get Started** (que abre o painel direto na análise ex
 
 | Aba | Conteúdo |
 |---|---|
-| Análise Exploratória | Indicadores da série, preço e médias, volatilidade, distribuição contra a Normal, Q-Q plot, assimetria, curtose em excesso e matriz de correlação em triângulo |
+| Análise Exploratória | Seletor de período e eventos históricos (base e do usuário); indicadores do período, preço e médias, volatilidade, distribuição contra a Normal, Q-Q plot, assimetria, curtose em excesso e matriz de correlação em triângulo |
 | Desempenho dos Modelos | Métricas, comparação com o baseline, tabela classificada, real contra previsões, validação cruzada e curva de aprendizado da MLP; treino com um clique para ativos sem modelo |
 | Interpretabilidade (XAI) | SHAP global e beeswarm; seleção de pregão por data com waterfall e LIME |
 | Simulador de Risco e VaR | Volatilidade projetada, medidor de regime e VaR diário a 95% e 99% |
 | Relatórios e Downloads | Relatório consolidado gerado na hora, CSV de métricas, CSV de dados e catálogo de 12 figuras |
+
+### 10.3. Período e eventos históricos
+- **Período:** atalhos de 1, 2 ou 5 anos, a série inteira ou datas livres (mínimo de 30 pregões). Vale para todos os gráficos, estatísticas e a correlação da aba Análise Exploratória; não altera a divisão treino/teste dos modelos.
+- **Eventos da base:** `assets/eventos.csv`, com as colunas `data`, `categoria`, `titulo` e `descricao`. Categorias: Mercado e crises, Saúde, Política e Mundo. Cada categoria é uma série na legenda do gráfico, que liga e desliga com um clique.
+- **Eventos do usuário:** incluídos por um formulário (data, título e descrição), guardados na sessão do navegador, exportáveis em CSV (ponto e vírgula, datas dd/mm/aaaa) e recarregáveis pelo mesmo arquivo.
+- **Cores dos modelos:** a série real é preta e cada modelo tem uma cor própria (XGBoost laranja, LightGBM verde-azulado, MLP roxo, baseline cinza), definidas em `CORES_MODELOS` (`src/figuras.py`) e usadas tanto no painel quanto nas figuras para download.
 
 ---
 

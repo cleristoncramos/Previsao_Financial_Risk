@@ -38,6 +38,16 @@ COR_CINZA = "#6b7280"
 COR_VERMELHO = "#b91c1c"
 COR_TEXTO = "#1f2937"
 
+# Paleta dos modelos, compartilhada com o painel: a série real fica em preto e cada modelo
+# numa cor de matiz bem distinta, para nenhuma linha se confundir com a observada
+COR_REAL = "#111827"
+CORES_MODELOS = {
+    "XGBoost": "#ea580c",
+    "LightGBM": "#0d9488",
+    "Rede Neural (MLP)": "#7c3aed",
+    "Baseline Ingênuo (Persistência)": "#6b7280",
+}
+
 # (nome do arquivo, título exibido, conteúdo PNG)
 Figura = Tuple[str, str, bytes]
 
@@ -238,17 +248,17 @@ def figuras_avaliacao(
     """Figuras de desempenho dos modelos treinados para o ativo."""
     figuras: List[Figura] = []
     estilos = {
-        "XGBoost": dict(color=COR_MARINHO, linestyle="-"),
-        "LightGBM": dict(color=COR_VERDE, linestyle="--"),
-        "Rede Neural (MLP)": dict(color=COR_VIOLETA, linestyle=":"),
-        "Baseline Ingênuo (Persistência)": dict(color="#9ca3af", linestyle="-."),
+        "XGBoost": dict(color=CORES_MODELOS["XGBoost"], linestyle="-"),
+        "LightGBM": dict(color=CORES_MODELOS["LightGBM"], linestyle="--"),
+        "Rede Neural (MLP)": dict(color=CORES_MODELOS["Rede Neural (MLP)"], linestyle=":"),
+        "Baseline Ingênuo (Persistência)": dict(color=CORES_MODELOS["Baseline Ingênuo (Persistência)"], linestyle="-."),
     }
 
     with _trava_pyplot:
         # 1. Volatilidade real vs. previsões no conjunto de teste
         fig, ax = _nova_figura()
         datas = pd.to_datetime(datas_test)
-        ax.plot(datas, y_test, color="#111827", linewidth=1.8, label="Volatilidade Real")
+        ax.plot(datas, y_test, color=COR_REAL, linewidth=2.2, label="Volatilidade Real")
         for nome, y_hat in predicoes.items():
             ax.plot(datas, y_hat, linewidth=1.1, label=nome, **estilos.get(nome, {}))
         _estilizar(ax, f"{ticker} — Volatilidade Real vs. Modelos (Teste 20%)", "Data do pregão", "Volatilidade anualizada")

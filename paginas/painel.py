@@ -59,6 +59,8 @@ from src.evaluation import (
     validacao_cruzada_temporal,
 )
 from src.figuras import (
+    COR_REAL,
+    CORES_MODELOS,
     figuras_avaliacao,
     figuras_exploratorias,
     figuras_interpretabilidade,
@@ -272,6 +274,73 @@ def formatar_numero(valor: float, casas: int = 2) -> str:
 def formatar_reais(valor: float) -> str:
     """Valor monetário no padrão brasileiro: R$ 1.234.567,89."""
     return f"R$ {formatar_numero(valor, 2)}"
+
+
+# =============================================================================
+# EVENTOS HISTÓRICOS: marcadores nos gráficos de série temporal
+# =============================================================================
+EVENTOS_CSV = BASE_DIR / "assets" / "eventos.csv"
+CATEGORIA_USUARIO = "Seus eventos"
+CORES_EVENTOS = {
+    "Mercado e crises": "#b91c1c",
+    "Saúde": "#c2410c",
+    "Política": "#7c3aed",
+    "Mundo": "#0f766e",
+    CATEGORIA_USUARIO: "#111827",
+}
+COLUNAS_EVENTOS = ["data", "categoria", "titulo", "descricao"]
+
+
+@st.cache_data(show_spinner=False)
+def carregar_eventos_cached() -> pd.DataFrame:
+    """Base de eventos de assets/eventos.csv (data, categoria, título e descrição)."""
+    if not EVENTOS_CSV.exists():
+        return pd.DataFrame(columns=COLUNAS_EVENTOS)
+    eventos = pd.read_csv(EVENTOS_CSV, parse_dates=["data"], encoding="utf-8")
+    return eventos[COLUNAS_EVENTOS]
+
+
+def eventos_do_usuario() -> pd.DataFrame:
+    """Eventos adicionados pelo usuário nesta sessão do navegador."""
+    registros = st.session_state.get("eventos_usuario", [])
+    if not registros:
+        return pd.DataFrame(columns=COLUNAS_EVENTOS)
+    eventos = pd.DataFrame(registros, columns=COLUNAS_EVENTOS)
+    eventos["data"] = pd.to_datetime(eventos["data"])
+    return eventos
+
+
+def adicionar_eventos(fig: go.Figure, eventos: pd.DataFrame, y_min: float, y_max: float) -> None:
+    """
+    Desenha cada evento como uma linha vertical pontilhada, agrupada por categoria: cada
+    categoria é uma única série na legenda, que liga e desliga com um clique, e o título
+    e a descrição aparecem ao passar o mouse sobre a linha.
+    """
+    # Ordem fixa das categorias na legenda (a de CORES_EVENTOS)
+    for categoria in sorted(eventos["categoria"].unique(), key=lambda c: list(CORES_EVENTOS).index(c) if c in CORES_EVENTOS else 99):
+        grupo = eventos[eventos["categoria"] == categoria]
+        xs, ys, textos = [], [], []
+        for _, ev in grupo.sort_values("data").iterrows():
+            texto = f"<b>{ev['titulo']}</b>"
+            if isinstance(ev["descricao"], str) and ev["descricao"].strip():
+                texto += f"<br>{ev['descricao']}"
+            xs += [ev["data"], ev["data"], None]
+            ys += [y_min, y_max, None]
+            textos += [texto, texto, ""]
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="lines",
+                name=categoria,
+                legendgroup=f"evento_{categoria}",
+                line=dict(color=CORES_EVENTOS.get(categoria, "#111827"), width=1.2, dash="dot"),
+                opacity=0.75,
+                customdata=textos,
+                hovertemplate="%{customdata}<extra></extra>",
+                connectgaps=False,
+            )
+        )
 
 
 ICONES_DIR = BASE_DIR / "assets" / "ativos"
@@ -613,52 +682,184 @@ aba_eda, aba_modelos, aba_xai, aba_simulador, aba_relatorios = st.tabs(
 with aba_eda:
     st.markdown(f"### Análise Exploratória de Dados — {ticker_selecionado}")
 
-    # Indicadores da série do ativo
+    # Período analisado: atalhos ou datas livres. Vale só para esta aba; os modelos
+    # continuam avaliados no período de teste fixo (20% finais da série)
+    data_min = df_ativo["Data"].min().date()
+    data_max = df_ativo["Data"].max().date()
+    ATALHOS_PERIODO = {"1 ano": 1, "2 anos": 2, "5 anos": 5, "Tudo": None}
+    with linha("eda_periodo"):
+        col_atalho, col_datas = st.columns([1.4, 1], gap="large", vertical_alignment="bottom")
+        with col_atalho:
+            atalho = st.segmented_control(
+                "Período analisado",
+                options=list(ATALHOS_PERIODO) + ["Personalizado"],
+                default="Tudo",
+                key="eda_atalho_periodo",
+            ) or "Tudo"
+        with col_datas:
+            if atalho == "Personalizado":
+                datas_escolhidas = st.date_input(
+                    "Datas (início e fim)",
+                    value=(max(data_min, data_max - timedelta(days=365)), data_max),
+                    min_value=data_min,
+                    max_value=data_max,
+                    format="DD/MM/YYYY",
+                    key="eda_datas_periodo",
+                )
+                # Enquanto o usuário escolhe só a primeira data, o período vai até o fim da série
+                inicio_periodo = datas_escolhidas[0] if len(datas_escolhidas) > 0 else data_min
+                fim_periodo = datas_escolhidas[1] if len(datas_escolhidas) > 1 else data_max
+            else:
+                anos = ATALHOS_PERIODO[atalho]
+                inicio_periodo = (
+                    max(data_min, (pd.Timestamp(data_max) - pd.DateOffset(years=anos)).date()) if anos else data_min
+                )
+                fim_periodo = data_max
+
+    df_periodo = df_ativo[
+        (df_ativo["Data"].dt.date >= inicio_periodo) & (df_ativo["Data"].dt.date <= fim_periodo)
+    ].reset_index(drop=True)
+    if len(df_periodo) < 30:
+        # Sem st.stop(): as demais abas são montadas na mesma execução e precisam continuar
+        st.warning("O período escolhido tem menos de 30 pregões; exibindo a série completa.")
+        df_periodo = df_ativo.reset_index(drop=True)
+        inicio_periodo, fim_periodo = data_min, data_max
+    st.caption(
+        f"Exibindo {formatar_numero(len(df_periodo), 0)} pregões, de {df_periodo['Data'].min():%d/%m/%Y} "
+        f"a {df_periodo['Data'].max():%d/%m/%Y}. O período vale para todos os gráficos desta aba."
+    )
+
+    # Eventos históricos: base do sistema mais os eventos do próprio usuário
+    eventos_todos = pd.concat([carregar_eventos_cached(), eventos_do_usuario()], ignore_index=True)
+    # A lista vazia de eventos do usuário faz o concat devolver a coluna como texto
+    eventos_todos["data"] = pd.to_datetime(eventos_todos["data"])
+    categorias_eventos = [c for c in CORES_EVENTOS if c in set(eventos_todos["categoria"])]
+    with linha("eda_eventos"):
+        col_cat, col_novo = st.columns([1.4, 1], gap="large", vertical_alignment="bottom")
+        with col_cat:
+            categorias_exibidas = st.multiselect(
+                "Eventos históricos nos gráficos",
+                options=categorias_eventos,
+                default=categorias_eventos,
+                help="Marcadores de acontecimentos que mexeram com o mercado. Passe o mouse sobre a linha "
+                "pontilhada para ver o evento; clique na legenda do gráfico para ocultar uma categoria.",
+                key="eda_categorias_eventos",
+            )
+        with col_novo:
+            with st.popover("Adicionar evento próprio", icon=":material/add_location_alt:", use_container_width=True):
+                with st.form("form_evento_usuario", clear_on_submit=True, border=False):
+                    data_evento = st.date_input(
+                        "Data", value=data_max, min_value=data_min, max_value=data_max, format="DD/MM/YYYY"
+                    )
+                    titulo_evento = st.text_input("Título", max_chars=60, placeholder="Ex.: Queda das ações de tecnologia")
+                    descricao_evento = st.text_input("Descrição (opcional)", max_chars=160)
+                    if st.form_submit_button("Adicionar", type="primary", use_container_width=True):
+                        if titulo_evento.strip():
+                            st.session_state.setdefault("eventos_usuario", []).append(
+                                {
+                                    "data": pd.Timestamp(data_evento),
+                                    "categoria": CATEGORIA_USUARIO,
+                                    "titulo": titulo_evento.strip(),
+                                    "descricao": descricao_evento.strip(),
+                                }
+                            )
+                            # O novo evento deve aparecer já marcado no filtro de categorias
+                            st.session_state.pop("eda_categorias_eventos", None)
+                            st.rerun()
+                        else:
+                            st.warning("Informe um título para o evento.")
+
+                arquivo_eventos = st.file_uploader(
+                    "Ou carregue um CSV de eventos salvo antes", type="csv", key="eda_upload_eventos"
+                )
+                if arquivo_eventos is not None and st.session_state.get("eda_upload_lido") != arquivo_eventos.file_id:
+                    try:
+                        carregados = pd.read_csv(arquivo_eventos, sep=";", encoding="utf-8-sig", dtype=str)
+                        carregados.columns = [c.strip().lower() for c in carregados.columns]
+                        carregados["data"] = pd.to_datetime(carregados["data"], dayfirst=True)
+                        if "descricao" not in carregados.columns:
+                            carregados["descricao"] = ""
+                        carregados["descricao"] = carregados["descricao"].fillna("")
+                        carregados["categoria"] = CATEGORIA_USUARIO
+                        st.session_state.setdefault("eventos_usuario", []).extend(
+                            carregados[COLUNAS_EVENTOS].to_dict("records")
+                        )
+                        st.session_state["eda_upload_lido"] = arquivo_eventos.file_id
+                        st.session_state.pop("eda_categorias_eventos", None)
+                        st.rerun()
+                    except (KeyError, ValueError):
+                        st.error("O arquivo precisa das colunas data e titulo (e, opcionalmente, descricao), separadas por ponto e vírgula.")
+
+                meus_eventos = eventos_do_usuario()
+                if not meus_eventos.empty:
+                    st.caption(f"{len(meus_eventos)} evento(s) seu(s) nesta sessão.")
+                    csv_eventos = meus_eventos.assign(data=meus_eventos["data"].dt.strftime("%d/%m/%Y"))[
+                        ["data", "titulo", "descricao"]
+                    ].to_csv(sep=";", index=False).encode("utf-8-sig")
+                    st.download_button(
+                        "Baixar meus eventos (CSV)",
+                        data=csv_eventos,
+                        file_name="meus_eventos.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
+                    if st.button("Remover meus eventos", use_container_width=True):
+                        st.session_state.pop("eventos_usuario", None)
+                        st.session_state.pop("eda_categorias_eventos", None)
+                        st.rerun()
+
+    eventos_periodo = eventos_todos[
+        eventos_todos["categoria"].isin(categorias_exibidas)
+        & (eventos_todos["data"].dt.date >= inicio_periodo)
+        & (eventos_todos["data"].dt.date <= fim_periodo)
+    ]
+
+    # Indicadores do período
     with linha("kpi_serie"):
         col_res1, col_res2, col_res3, col_res4 = st.columns(4, gap="large")
         with col_res1:
             st.markdown(
                 f"""
                 <div class="kpi-card kpi-best">
-                    <div class="kpi-label">Registros Históricos</div>
-                    <div class="kpi-value">{formatar_numero(len(df_ativo), 0)}</div>
+                    <div class="kpi-label">Registros no Período</div>
+                    <div class="kpi-value">{formatar_numero(len(df_periodo), 0)}</div>
                     <div class="kpi-sub">Pregões diários válidos</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
         with col_res2:
-            dt_inicio = df_ativo["Data"].min().strftime("%d/%m/%Y")
+            dt_inicio = df_periodo["Data"].min().strftime("%d/%m/%Y")
             st.markdown(
                 f"""
                 <div class="kpi-card">
                     <div class="kpi-label">Marco Inicial</div>
                     <div class="kpi-value" style="font-size: 1.25rem;">{dt_inicio}</div>
-                    <div class="kpi-sub">Início da série temporal</div>
+                    <div class="kpi-sub">Primeiro pregão do período</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
         with col_res3:
-            dt_fim = df_ativo["Data"].max().strftime("%d/%m/%Y")
+            dt_fim = df_periodo["Data"].max().strftime("%d/%m/%Y")
             st.markdown(
                 f"""
                 <div class="kpi-card">
                     <div class="kpi-label">Marco Final</div>
                     <div class="kpi-value" style="font-size: 1.25rem;">{dt_fim}</div>
-                    <div class="kpi-sub">Data da última cotação</div>
+                    <div class="kpi-sub">Último pregão do período</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
         with col_res4:
-            vol_recente = df_ativo["Volatilidade_21d"].iloc[-1] * 100
+            vol_recente = df_periodo["Volatilidade_21d"].iloc[-1] * 100
             st.markdown(
                 f"""
                 <div class="kpi-card kpi-good">
-                    <div class="kpi-label">Volatilidade Atual (21d)</div>
+                    <div class="kpi-label">Volatilidade (21d)</div>
                     <div class="kpi-value">{formatar_numero(vol_recente, 2)}%</div>
-                    <div class="kpi-sub">Anualizada no último pregão</div>
+                    <div class="kpi-sub">Anualizada no último pregão do período</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -670,30 +871,32 @@ with aba_eda:
         fig_fech = go.Figure()
         fig_fech.add_trace(
             go.Scatter(
-                x=df_ativo["Data"],
-                y=df_ativo["Close"],
+                x=df_periodo["Data"],
+                y=df_periodo["Close"],
                 name="Fechamento Ajustado",
                 line=dict(color="#1e3a8a", width=1.5),
             )
         )
-        if "MM_20d" in df_ativo.columns:
+        if "MM_20d" in df_periodo.columns:
             fig_fech.add_trace(
                 go.Scatter(
-                    x=df_ativo["Data"],
-                    y=df_ativo["MM_20d"],
+                    x=df_periodo["Data"],
+                    y=df_periodo["MM_20d"],
                     name="Média Móvel 20d",
                     line=dict(color="#b45309", width=1.3, dash="dash"),
                 )
             )
-        if "MM_50d" in df_ativo.columns:
+        if "MM_50d" in df_periodo.columns:
             fig_fech.add_trace(
                 go.Scatter(
-                    x=df_ativo["Data"],
-                    y=df_ativo["MM_50d"],
+                    x=df_periodo["Data"],
+                    y=df_periodo["MM_50d"],
                     name="Média Móvel 50d",
                     line=dict(color="#0f766e", width=1.3, dash="dot"),
                 )
             )
+        precos = df_periodo[["Close", "MM_20d", "MM_50d"]]
+        adicionar_eventos(fig_fech, eventos_periodo, float(precos.min().min()), float(precos.max().max()))
 
         fig_fech.update_layout(
             title=f"{ticker_selecionado} — Preço de Fechamento com Médias Móveis (20d e 50d)",
@@ -708,37 +911,40 @@ with aba_eda:
     with secao("eda_volatilidade"):
         st.markdown("#### 2. Evolução da Volatilidade Histórica Anualizada (Janela Móvel 21d)")
         fig_vol = px.area(
-            df_ativo,
+            df_periodo,
             x="Data",
             y="Volatilidade_21d",
             title=f"Volatilidade Anualizada — {ticker_selecionado}",
             labels={"Volatilidade_21d": "Volatilidade (anualizada)"},
             color_discrete_sequence=["#9f1239"],
-            height=380,
+            height=400,
         )
-        fig_vol.update_traces(fillcolor="rgba(159, 18, 57, 0.12)", line=dict(width=1.3))
+        fig_vol.update_traces(
+            fillcolor="rgba(159, 18, 57, 0.12)", line=dict(width=1.3), name="Volatilidade", showlegend=True
+        )
+        adicionar_eventos(fig_vol, eventos_periodo, 0.0, float(df_periodo["Volatilidade_21d"].max()))
         fig_vol.update_layout(hovermode="x unified", margin=dict(b=56))
         exibir_grafico(fig_vol)
 
     with secao("eda_fatos"):
         st.markdown("#### 3. Fatos Estilizados: Distribuição de Retornos e Hipótese de Normalidade")
 
-        retornos = df_ativo["Retorno_Diario"].dropna()
+        retornos = df_periodo["Retorno_Diario"].dropna()
         skewness = float(retornos.skew())
         kurtosis = float(retornos.kurtosis())
 
         with linha("eda_metricas"):
             col_stat1, col_stat2, col_stat3, col_stat4 = st.columns(4, gap="large")
             with col_stat1:
-                st.metric("Retorno Médio Diário", f"{retornos.mean()*100:.3f}%")
+                st.metric("Retorno Médio Diário", f"{formatar_numero(retornos.mean() * 100, 3)}%")
             with col_stat2:
-                st.metric("Desvio Padrão Diário", f"{retornos.std()*100:.3f}%")
+                st.metric("Desvio Padrão Diário", f"{formatar_numero(retornos.std() * 100, 3)}%")
             with col_stat3:
-                st.metric("Assimetria (Skewness)", f"{skewness:.4f}", help="Negativa indica assimetria com cauda à esquerda")
+                st.metric("Assimetria (Skewness)", formatar_numero(skewness, 4), help="Negativa indica assimetria com cauda à esquerda")
             with col_stat4:
                 st.metric(
                     "Curtose em Excesso",
-                    f"{kurtosis:.4f}",
+                    formatar_numero(kurtosis, 4),
                     help="Curtose de Fisher (pandas): a Normal vale 0. Valores > 0 indicam distribuição leptocúrtica / caudas pesadas.",
                 )
 
@@ -812,8 +1018,8 @@ with aba_eda:
                 exibir_grafico(fig_qq)
 
         st.info(
-            f"**Interpretação Acadêmica:** A curtose em excesso de **{kurtosis:.2f}** (a distribuição Normal vale 0; equivale a "
-            f"uma curtose de {kurtosis + 3:.2f} contra 3 da Normal), associada ao afastamento das caudas no Q-Q Plot, "
+            f"**Interpretação Acadêmica:** A curtose em excesso de **{formatar_numero(kurtosis, 2)}** (a distribuição Normal vale 0; equivale a "
+            f"uma curtose de {formatar_numero(kurtosis + 3, 2)} contra 3 da Normal), associada ao afastamento das caudas no Q-Q Plot, "
             f"evidencia o fato estilizado financeiro das **caudas pesadas (leptocurtose)**: eventos extremos ocorrem com "
             f"frequência maior do que a Normal prevê. Por isso, medidas de risco baseadas na Normal, como o VaR paramétrico, "
             f"tendem a subestimar perdas extremas."
@@ -831,6 +1037,9 @@ with aba_eda:
                     ret_dict[nome_limpo] = df_t.set_index("Data")["Retorno_Diario"]
 
             df_ret_corr = pd.DataFrame(ret_dict).dropna()
+            # Mesmo período escolhido no topo da aba
+            datas_corr = df_ret_corr.index.to_series().dt.date
+            df_ret_corr = df_ret_corr[(datas_corr >= inicio_periodo) & (datas_corr <= fim_periodo)]
             if not df_ret_corr.empty:
                 # Só o triângulo inferior: cada par de ativos aparece uma vez, sem a diagonal (sempre 1)
                 corr_mat = triangulo_inferior(df_ret_corr.corr())
@@ -1024,15 +1233,16 @@ with aba_modelos:
                     x=datas_dt,
                     y=dataset.y_test,
                     name="Volatilidade Real Observada",
-                    line=dict(color="#111827", width=2.2),
+                    line=dict(color=COR_REAL, width=2.6),
                 )
             )
 
+            # Série real em preto e cada modelo numa cor bem distinta (paleta de src/figuras.py)
             estilos_graf = {
-                "XGBoost": dict(color="#1e3a8a", dash="solid", width=1.8),
-                "LightGBM": dict(color="#0f766e", dash="dash", width=1.8),
-                "Rede Neural (MLP)": dict(color="#7c3aed", dash="dot", width=1.8),
-                "Baseline Ingênuo (Persistência)": dict(color="#9ca3af", dash="dashdot", width=1.5),
+                "XGBoost": dict(color=CORES_MODELOS["XGBoost"], dash="solid", width=1.8),
+                "LightGBM": dict(color=CORES_MODELOS["LightGBM"], dash="dash", width=1.8),
+                "Rede Neural (MLP)": dict(color=CORES_MODELOS["Rede Neural (MLP)"], dash="dot", width=2),
+                "Baseline Ingênuo (Persistência)": dict(color=CORES_MODELOS["Baseline Ingênuo (Persistência)"], dash="dashdot", width=1.6),
             }
 
             for m_nome in modelos_selecionados:

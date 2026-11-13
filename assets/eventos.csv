@@ -1,0 +1,28 @@
+data,categoria,titulo,descricao
+2016-06-23,Mundo,Brexit,Reino Unido aprova em plebiscito a saída da União Europeia.
+2016-08-31,Política,Impeachment de Dilma Rousseff,Senado aprova o impeachment da presidente da República.
+2016-11-08,Mundo,Eleição nos Estados Unidos,Eleição presidencial norte-americana de 2016.
+2017-05-18,Mercado e crises,Joesley Day,Divulgação de gravações envolvendo o presidente da República; a B3 aciona o circuit breaker.
+2018-05-21,Mercado e crises,Greve dos caminhoneiros,Paralisação nacional dos caminhoneiros afeta o abastecimento e a atividade econômica.
+2018-10-07,Política,Eleições 2018 (1º turno),Primeiro turno das eleições gerais no Brasil.
+2018-10-28,Política,Eleições 2018 (2º turno),Segundo turno da eleição presidencial no Brasil.
+2019-10-22,Política,Reforma da Previdência,Senado conclui a aprovação da reforma da Previdência.
+2020-02-26,Saúde,Primeiro caso de COVID-19 no Brasil,Ministério da Saúde confirma o primeiro caso da doença no país.
+2020-03-09,Mercado e crises,Circuit breaker (1º de 6),Queda forte da bolsa interrompe os negócios na B3 no início da pandemia.
+2020-03-11,Saúde,OMS declara pandemia,A Organização Mundial da Saúde classifica a COVID-19 como pandemia.
+2020-03-11,Mercado e crises,Circuit breaker (2º de 6),Nova interrupção dos negócios na B3.
+2020-03-12,Mercado e crises,Circuit breakers (3º e 4º de 6),Duas interrupções dos negócios na B3 no mesmo pregão.
+2020-03-16,Mercado e crises,Circuit breaker (5º de 6),Nova interrupção dos negócios na B3.
+2020-03-18,Mercado e crises,Circuit breaker (6º de 6),Sexta interrupção dos negócios na B3 em março de 2020.
+2020-11-09,Saúde,Eficácia da vacina da Pfizer,Divulgação dos primeiros resultados de eficácia de uma vacina contra a COVID-19.
+2021-01-17,Saúde,Início da vacinação no Brasil,Anvisa autoriza o uso emergencial de vacinas e a vacinação começa no país.
+2022-02-24,Mundo,Invasão da Ucrânia,Rússia invade a Ucrânia; petróleo e outras commodities disparam.
+2022-03-16,Mundo,Fed inicia alta de juros,Banco central dos Estados Unidos começa um ciclo de alta da taxa de juros.
+2022-10-02,Política,Eleições 2022 (1º turno),Primeiro turno das eleições gerais no Brasil.
+2022-10-30,Política,Eleições 2022 (2º turno),Segundo turno da eleição presidencial no Brasil.
+2023-01-08,Política,Ataques em Brasília,Invasão e depredação das sedes dos Três Poderes.
+2023-03-10,Mundo,Quebra do Silicon Valley Bank,Falência de banco norte-americano gera temor de crise bancária.
+2024-11-05,Mundo,Eleição nos Estados Unidos,Eleição presidencial norte-americana de 2024.
+2025-04-02,Mundo,Tarifas dos Estados Unidos,Governo norte-americano anuncia tarifas amplas sobre importações.
+2026-10-04,Política,Eleições 2026 (1º turno),Primeiro turno das eleições gerais no Brasil.
+2026-10-25,Política,Eleições 2026 (2º turno),Segundo turno da eleição presidencial no Brasil.
