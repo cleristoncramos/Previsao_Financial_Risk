@@ -194,8 +194,8 @@ st.markdown(
         <h2>Comece em cinco passos</h2>
         <ol class="landing-passos">
             <li><strong>Entre no painel</strong> pelo botão <em>Get Started</em>: ele abre direto na análise exploratória.</li>
-            <li><strong>Escolha o ativo</strong> na barra lateral. O IBOVESPA (^BVSP) é a referência do estudo e já vem com modelos treinados.</li>
-            <li><strong>Treine os modelos</strong> do ativo, se o painel indicar que ainda não existem: basta um clique na aba <em>Desempenho dos Modelos</em>.</li>
+            <li><strong>Escolha o ativo</strong> na barra lateral. O IBOVESPA (^BVSP) é a referência do estudo, e todos os sete ativos já vêm com modelos treinados.</li>
+            <li><strong>Escolha a base de dados</strong>: <em>Dados do TCC</em> reproduz os resultados do trabalho; <em>Dados atualizados</em> permite baixar os pregões mais recentes.</li>
             <li><strong>Explore as análises</strong>: compare os modelos, escolha um pregão na aba de interpretabilidade e simule o VaR com o seu patrimônio.</li>
             <li><strong>Baixe os resultados</strong> na aba <em>Relatórios e Downloads</em>. Para voltar a esta página, use o ícone de início no topo da barra lateral.</li>
         </ol>

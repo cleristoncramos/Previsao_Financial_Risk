@@ -39,7 +39,9 @@ if str(BASE_DIR) not in sys.path:
 
 from src.config import (
     ATIVOS,
+    DATA_CORTE_TCC,
     DATA_DIR,
+    DATA_TCC_DIR,
     DATA_FIM,
     DATA_INICIO,
     FIGURES_DIR,
@@ -82,12 +84,17 @@ from src.report import dados_para_csv, metricas_para_csv, montar_texto_relatorio
 # FUNÇÕES DE CACHE PARA CARREGAMENTO RÁPIDO
 # =============================================================================
 @st.cache_data(show_spinner=False)
-def carregar_dados_ativo_cached(ticker: str) -> Optional[pd.DataFrame]:
-    """Carrega dados locais se existirem, ou realiza o download via Yahoo Finance."""
-    df = carregar_ativo_local(ticker, pasta_saida=DATA_DIR)
+def carregar_dados_ativo_cached(ticker: str, pasta: str = str(DATA_DIR)) -> Optional[pd.DataFrame]:
+    """
+    Carrega o CSV do ativo da base escolhida (dados do TCC ou dados atualizados). Só a base
+    atualizada recorre ao download do Yahoo Finance quando o arquivo não existe.
+    """
+    df = carregar_ativo_local(ticker, pasta_saida=Path(pasta))
     if df is not None and not df.empty:
         df["Data"] = pd.to_datetime(df["Data"])
         return df.sort_values("Data").reset_index(drop=True)
+    if Path(pasta) != DATA_DIR:
+        return None
 
     # Tenta download se não existir localmente
     df_raw = baixar_ativo(ticker, inicio=DATA_INICIO, fim=DATA_FIM)
@@ -102,12 +109,12 @@ def carregar_dados_ativo_cached(ticker: str) -> Optional[pd.DataFrame]:
 
 
 @st.cache_data(show_spinner=False)
-def carregar_todos_dados_cached() -> Dict[str, pd.DataFrame]:
-    """Carrega as séries de todos os ativos monitorados no projeto."""
+def carregar_todos_dados_cached(pasta: str = str(DATA_DIR)) -> Dict[str, pd.DataFrame]:
+    """Carrega as séries de todos os ativos monitorados no projeto, da base escolhida."""
     todos = {}
     for cat, tickers in ATIVOS.items():
         for t in tickers:
-            df = carregar_dados_ativo_cached(t)
+            df = carregar_dados_ativo_cached(t, pasta)
             if df is not None:
                 todos[t] = df
     return todos
@@ -416,7 +423,7 @@ with st.sidebar:
         "Modo pesquisador",
         key="modo_pesquisador",
         help="Mostra os recursos técnicos: validação cruzada temporal, curva de aprendizado da rede neural, "
-        "SHAP beeswarm e explicação LIME.",
+        "SHAP beeswarm, explicação LIME e o botão para treinar os modelos novamente.",
     )
 
     st.markdown('<div class="sidebar-titulo" style="margin-top: 1.75rem;">Estado da Modelagem</div>', unsafe_allow_html=True)
@@ -427,8 +434,26 @@ with st.sidebar:
     else:
         st.warning(f"Não há modelos treinados para {ticker_selecionado}.")
 
-    # Botão de Ação: Atualizar Dados (novo download no Yahoo Finance e regravação dos CSVs)
-    if st.button("Atualizar Séries Temporais", use_container_width=True):
+    # Base de dados: o retrato fixo do TCC (reprodutibilidade) ou a base que pode ser atualizada
+    st.markdown('<div class="sidebar-titulo" style="margin-top: 1.75rem;">Base de Dados</div>', unsafe_allow_html=True)
+    corte_tcc = pd.Timestamp(DATA_CORTE_TCC).strftime("%d/%m/%Y")
+    base_dados = st.radio(
+        "Base de dados",
+        options=["tcc", "atualizada"],
+        format_func=lambda b: f"Dados do TCC (até {corte_tcc})" if b == "tcc" else "Dados atualizados",
+        key="base_dados",
+        label_visibility="collapsed",
+        help="Os dados do TCC reproduzem exatamente os resultados do trabalho. Os dados atualizados podem "
+        "ser baixados de novo no Yahoo Finance e incluem os pregões mais recentes.",
+    )
+    usar_dados_tcc = base_dados == "tcc" and DATA_TCC_DIR.exists()
+    PASTA_DADOS = str(DATA_TCC_DIR if usar_dados_tcc else DATA_DIR)
+
+    # Botão de Ação: Atualizar Dados (novo download no Yahoo Finance e regravação dos CSVs).
+    # Só faz sentido na base atualizada: o retrato do TCC nunca é alterado
+    if usar_dados_tcc:
+        st.caption("Séries fixas usadas no TCC. Para baixar pregões mais recentes, escolha **Dados atualizados**.")
+    elif st.button("Atualizar Séries Temporais", use_container_width=True):
         # O parâmetro end do yfinance é exclusivo: amanhã garante a inclusão do pregão de hoje
         fim_coleta = (agora_brasilia() + timedelta(days=1)).strftime("%Y-%m-%d")
         with st.spinner("Baixando séries atualizadas do Yahoo Finance..."):
@@ -528,7 +553,7 @@ with st.container(key="barra_saiba_mais"):
         saiba_mais()
 
 # Carregamento do ativo em foco
-df_ativo = carregar_dados_ativo_cached(ticker_selecionado)
+df_ativo = carregar_dados_ativo_cached(ticker_selecionado, PASTA_DADOS)
 
 if df_ativo is None or df_ativo.empty:
     st.error(f"Não foi possível carregar os dados para o ativo {ticker_selecionado}.")
@@ -1066,7 +1091,7 @@ with aba_eda:
     # Matriz de Correlação entre Ativos
     with secao("eda_correlacao"):
         st.markdown("#### 4. Matriz de Correlação Cruzada entre Ativos")
-        todos_dados = carregar_todos_dados_cached()
+        todos_dados = carregar_todos_dados_cached(PASTA_DADOS)
         if todos_dados:
             ret_dict = {}
             for t_nome, df_t in todos_dados.items():
@@ -1393,6 +1418,43 @@ with aba_modelos:
                                 "Treine os modelos novamente para gerar a curva."
                             )
 
+            # Treino de novo, em memória: confere a reprodutibilidade sem tocar nos modelos publicados
+            with secao("retreino"):
+                st.markdown("#### 5. Treinar Novamente (Teste de Reprodutibilidade)")
+                st.markdown(
+                    "Treina de novo os três modelos, com os mesmos dados, a mesma divisão 80/20 e os mesmos "
+                    "parâmetros, e compara o erro com o dos modelos publicados. O treino fica só nesta sessão: "
+                    "os modelos usados pelo painel não são substituídos."
+                )
+                chave_retreino = f"retreino_{ticker_selecionado}_{df_ativo['Data'].max().date()}"
+                if st.button("Treinar novamente", icon=":material/restart_alt:", key="btn_retreino"):
+                    with st.spinner("Treinando XGBoost, LightGBM e Rede Neural MLP. No Streamlit Cloud, pode levar alguns minutos..."):
+                        _, predicoes_novas, _ = treinar_todos_modelos(
+                            dataset, salvar=False, ticker_ref=ticker_selecionado
+                        )
+                    st.session_state[chave_retreino] = predicoes_novas
+
+                if chave_retreino in st.session_state:
+                    publicados = df_metricas.set_index("Modelo")
+                    linhas_comparacao = []
+                    for nome, y_hat in st.session_state[chave_retreino].items():
+                        novo = calcular_metricas(nome, dataset.y_test, y_hat)
+                        rmse_pub = float(publicados.loc[nome, "RMSE"]) if nome in publicados.index else float("nan")
+                        linhas_comparacao.append(
+                            {
+                                "Modelo": nome,
+                                "RMSE publicado": formatar_numero(rmse_pub, 5),
+                                "RMSE retreinado": formatar_numero(novo["RMSE"], 5),
+                                "Diferença": f"{'+' if novo['RMSE'] >= rmse_pub else ''}{formatar_numero(novo['RMSE'] - rmse_pub, 5)}",
+                                "R² retreinado": formatar_numero(novo["R2"], 4),
+                            }
+                        )
+                    st.dataframe(pd.DataFrame(linhas_comparacao), use_container_width=True, hide_index=True)
+                    st.caption(
+                        "XGBoost e LightGBM usam semente fixa e reproduzem o mesmo resultado. O treino da Rede Neural "
+                        "no TensorFlow não é totalmente determinístico, então o erro dela varia de uma execução para outra."
+                    )
+
         else:
             st.caption(
                 "A validação cruzada temporal e a curva de aprendizado da rede neural ficam no "
@@ -1422,7 +1484,8 @@ with aba_xai:
         )
     else:
         m_xgb = modelos_dict["XGBoost"]
-        versao_modelo = str(meta_dict.get("data_salvamento", ""))
+        # A chave inclui o último pregão: SHAP e LIME mudam quando a base de dados muda
+        versao_modelo = f'{meta_dict.get("data_salvamento", "")}|{df_ativo["Data"].max().date()}'
         nomes_features = list(dataset.features)
         datas_test_dt = pd.to_datetime(dataset.datas_test)
 
@@ -1862,7 +1925,7 @@ with aba_relatorios:
         ultima_data = str(df_ativo["Data"].max().date())
         retornos_ativos = {
             t.replace(".SA", "").replace("^", ""): d.set_index("Data")["Retorno_Diario"]
-            for t, d in carregar_todos_dados_cached().items()
+            for t, d in carregar_todos_dados_cached(PASTA_DADOS).items()
             if "Retorno_Diario" in d.columns
         }
         figuras_catalogo = list(
@@ -1870,7 +1933,8 @@ with aba_relatorios:
         )
 
         if tem_modelos:
-            versao_modelo = str(meta_dict.get("data_salvamento", ""))
+            # A chave inclui o último pregão: SHAP e LIME mudam quando a base de dados muda
+            versao_modelo = f'{meta_dict.get("data_salvamento", "")}|{df_ativo["Data"].max().date()}'
             predicoes_catalogo = adicionar_baseline_ingenuo(
                 dataset.features, dataset.X_test, predizer_com_modelos(modelos_dict, X_test_scaled)
             )

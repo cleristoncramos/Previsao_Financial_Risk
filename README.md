@@ -91,7 +91,7 @@ A barra lateral traz o ícone de retorno à página inicial, a **seleção do at
 | Aba | Conteúdo |
 |---|---|
 | **Análise Exploratória** | Seletor de período (1, 2 ou 5 anos, tudo ou datas livres) e marcadores de eventos históricos, com a opção de adicionar eventos próprios; indicadores do período, preço com médias móveis, volatilidade histórica, distribuição dos retornos contra a Normal, Q-Q plot, assimetria e curtose em excesso, e matriz de correlação entre os ativos (cada par exibido uma única vez) |
-| **Desempenho dos Modelos** | Métricas no teste, comparação explícita com o baseline, tabela classificada, série real contra previsões, validação cruzada temporal e curva de aprendizado da MLP; treino com um clique para ativos ainda sem modelo |
+| **Desempenho dos Modelos** | Métricas no teste, comparação explícita com o baseline, tabela classificada, série real contra previsões, validação cruzada temporal e curva de aprendizado da MLP; no modo pesquisador, botão para treinar os modelos novamente e comparar com os publicados |
 | **Interpretabilidade (XAI)** | Importância global e beeswarm SHAP, seleção de um pregão por data e decomposição local da previsão (waterfall SHAP e LIME) |
 | **Simulador de Risco e VaR** | Volatilidade projetada para o próximo pregão, regime de risco relativo ao histórico do ativo e calculadora de VaR diário a 95% e 99% |
 | **Relatórios e Downloads** | Relatório consolidado gerado na hora, CSV de métricas, CSV dos dados do ativo e catálogo de 12 figuras PNG em alta resolução |
@@ -99,6 +99,8 @@ A barra lateral traz o ícone de retorno à página inicial, a **seleção do at
 **Período e eventos históricos.** No topo da Análise Exploratória, o usuário escolhe o período exibido (atalhos de 1, 2 ou 5 anos, a série inteira ou datas livres). O período vale para os gráficos, as estatísticas e a correlação da aba; os modelos continuam avaliados no período de teste fixo. Os gráficos de preço e de volatilidade marcam eventos que mexeram com o mercado, em linhas pontilhadas por categoria (mercado e crises, saúde, política e mundo), com título e descrição ao passar o mouse. A base fica em `assets/eventos.csv` e inclui, por exemplo, os seis *circuit breakers* de março de 2020, a declaração da pandemia, a invasão da Ucrânia e as eleições. Pelo botão **Adicionar evento próprio**, o usuário inclui os seus eventos, baixa-os em CSV e pode carregá-los de novo em outra visita.
 
 **Como ler este gráfico e modo pesquisador.** Cada gráfico tem um botão **Como ler este gráfico**, que explica em linguagem simples o que ele mostra, como interpretá-lo e um exemplo com os números do ativo e do período selecionados (por exemplo, a data do maior pico de volatilidade). Os textos ficam em `src/textos_graficos.py`, separados do código do painel para facilitar a revisão. Os recursos mais técnicos (validação cruzada temporal, curva de aprendizado da rede neural, SHAP beeswarm e LIME) ficam ocultos por padrão e aparecem ao ligar o **Modo pesquisador** na barra lateral; no gráfico Real contra Modelos, o baseline vem marcado só nesse modo, mas pode ser incluído a qualquer momento.
+
+**Base de dados e reprodutibilidade.** Na barra lateral, o usuário escolhe entre **Dados do TCC** (padrão), um retrato fixo das séries até 21/10/2026 guardado em `dados_tcc/`, que reproduz exatamente os resultados do trabalho, e **Dados atualizados** (`dados_coletados/`), que podem ser baixados de novo no Yahoo Finance. Os sete ativos já vêm com modelos pré-treinados; no modo pesquisador, o botão **Treinar novamente** refaz o treino em memória e compara o erro com o dos modelos publicados, sem substituí-los.
 
 Convenções adotadas em todo o sistema:
 - **Formato brasileiro** em números, valores monetários, eixos e rótulos de gráficos (vírgula decimal e ponto no milhar) e datas no formato dd/mm/aaaa.
@@ -254,7 +256,8 @@ Previsao_Financial_Risk/
 ├── scripts/
 │   ├── rasterizar_logos.py         # Converte os logotipos dos ativos em PNG
 │   ├── gerar_video_apresentacao.py # Gera o vídeo da página inicial
-│   └── keep_alive.py               # Visita o app publicado para evitar a hibernação
+│   ├── keep_alive.py               # Visita o app publicado para evitar a hibernação
+│   └── treinar_ativos.py           # Treina e salva os modelos de cada ativo
 ├── assets/
 │   ├── style.css                   # Estilo visual do sistema
 │   ├── ativos/                     # Logotipos dos ativos (e PNGs em ativos/png/)
@@ -262,8 +265,9 @@ Previsao_Financial_Risk/
 │   ├── eventos.csv                 # Eventos históricos marcados nos gráficos
 │   └── video/apresentacao.mp4      # Vídeo curto da página inicial (e .gif alternativo)
 ├── .streamlit/config.toml          # Tema do Streamlit
-├── dados_coletados/                # Séries históricas em CSV
-├── modelos_salvos/                 # Modelos do ativo de referência (demais em por_ativo/)
+├── dados_coletados/                # Séries históricas em CSV (atualizáveis)
+├── dados_tcc/                      # Retrato fixo das séries usadas no TCC (até 21/10/2026)
+├── modelos_salvos/                 # Modelos do ^BVSP; os dos demais ativos em por_ativo/
 ├── relatorios_graficos/            # Figuras, gráficos HTML e relatório do pipeline
 ├── main.py                         # Pipeline completo em linha de comando
 ├── requirements.txt                # Dependências
@@ -312,7 +316,9 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Acesse `http://localhost:8501`. A página inicial abre na rota `/` e o painel em `/painel`. O repositório já inclui os dados e os modelos do ativo de referência; os demais ativos podem ser treinados pelo próprio painel, na aba **Desempenho dos Modelos**.
+Acesse `http://localhost:8501`. A página inicial abre na rota `/` e o painel em `/painel`. O repositório já inclui os dados e os modelos pré-treinados dos sete ativos.
+
+**Apresentação sem depender da internet.** Para uma demonstração ao vivo, rode o painel na própria máquina: os dados e os modelos estão no repositório, então só o botão **Atualizar Séries Temporais** precisa de conexão. Assim se evitam a hibernação e os limites de CPU do Streamlit Cloud.
 
 ### Pipeline em linha de comando
 
@@ -342,6 +348,12 @@ Depois de atualizar dados ou modelos do ativo de referência:
 ```bash
 python scripts/rasterizar_logos.py
 python scripts/gerar_video_apresentacao.py
+```
+
+Para retreinar os modelos dos ativos (o ^BVSP só com `--incluir-referencia`):
+
+```bash
+python scripts/treinar_ativos.py
 ```
 
 O primeiro script usa o Chrome ou o Edge instalados, em modo headless, para converter os logotipos SVG em PNG. O segundo grava o vídeo em MP4 (exibido na página) e em GIF (alternativa); o MP4 requer o pacote `imageio-ffmpeg` (`pip install imageio-ffmpeg`).

@@ -21,6 +21,10 @@ def agora_brasilia() -> datetime:
 # Diretórios base
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "dados_coletados"
+# Retrato fixo das séries usadas no TCC: permite reproduzir exatamente os resultados do trabalho,
+# mesmo depois que dados_coletados/ for atualizado com novos pregões
+DATA_TCC_DIR = BASE_DIR / "dados_tcc"
+DATA_CORTE_TCC = "2026-10-21"  # Último pregão das séries do TCC
 FIGURES_DIR = BASE_DIR / "relatorios_graficos"
 MODELS_DIR = BASE_DIR / "modelos_salvos"
 

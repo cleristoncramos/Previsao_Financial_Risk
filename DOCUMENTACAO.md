@@ -279,6 +279,8 @@ Pipeline em linha de comando (`argparse`) com as opções `--etapa`, `--usar-dad
 ### 5.14. `scripts/`
 - `rasterizar_logos.py`: converte os logotipos SVG em PNG (Chrome ou Edge em modo headless) para uso no vídeo.
 - `gerar_video_apresentacao.py`: gera o vídeo da página inicial (MP4 em H.264 e GIF alternativo) a partir dos dados e modelos reais; o MP4 requer o pacote `imageio-ffmpeg`.
+- `treinar_ativos.py`: treina e salva os modelos de cada ativo em `modelos_salvos/por_ativo/<ATIVO>/`, com métricas e histórico da MLP nos metadados; o ^BVSP só é retreinado com `--incluir-referencia`.
+- `keep_alive.py`: abre o app publicado com o Playwright para evitar a hibernação no Streamlit Cloud (executado pelo workflow `.github/workflows/keep-alive.yml`).
 
 ---
 
@@ -428,7 +430,7 @@ Frase de efeito, botão **Get Started** (que abre o painel direto na análise ex
 | Aba | Conteúdo |
 |---|---|
 | Análise Exploratória | Seletor de período e eventos históricos (base e do usuário); indicadores do período, preço e médias, volatilidade, distribuição contra a Normal, Q-Q plot, assimetria, curtose em excesso e matriz de correlação em triângulo |
-| Desempenho dos Modelos | Métricas, comparação com o baseline, tabela classificada, real contra previsões, validação cruzada e curva de aprendizado da MLP; treino com um clique para ativos sem modelo |
+| Desempenho dos Modelos | Métricas, comparação com o baseline, tabela classificada, real contra previsões, validação cruzada e curva de aprendizado da MLP; no modo pesquisador, treino novamente em memória comparado aos modelos publicados |
 | Interpretabilidade (XAI) | SHAP global e beeswarm; seleção de pregão por data com waterfall e LIME |
 | Simulador de Risco e VaR | Volatilidade projetada, medidor de regime e VaR diário a 95% e 99% |
 | Relatórios e Downloads | Relatório consolidado gerado na hora, CSV de métricas, CSV de dados e catálogo de 12 figuras |
@@ -442,6 +444,12 @@ Frase de efeito, botão **Get Started** (que abre o painel direto na análise ex
 ### 10.4. Como ler este gráfico e modo pesquisador
 - **Como ler este gráfico:** botão em cada um dos 14 painéis com gráfico ou resultado (análise exploratória, desempenho, interpretabilidade e simulador). O texto é fixo, em linguagem para leigos, e termina com um exemplo calculado na hora para o ativo e o período (pico de volatilidade, maior queda diária, par mais correlacionado, melhor modelo, variável mais importante). A opção por textos fixos, e não gerados por modelo de linguagem, segue a orientação de priorizar explicações revisadas, viáveis para os sete ativos do sistema.
 - **Modo pesquisador:** chave na barra lateral, desligada por padrão. Quando ligada, exibe a validação cruzada temporal, a curva de aprendizado da MLP, o SHAP beeswarm e o LIME, e marca o baseline no gráfico Real contra Modelos. Desligada, esses itens ficam ocultos e a numeração das seções se ajusta. O catálogo de figuras para download continua completo nos dois modos.
+
+### 10.5. Base de dados, modelos pré-treinados e reprodutibilidade
+- **Base de dados:** escolha na barra lateral entre **Dados do TCC** (padrão), em `dados_tcc/`, com as séries até 21/10/2026 (`DATA_CORTE_TCC` em `src/config.py`), e **Dados atualizados**, em `dados_coletados/`. O botão de atualização só aparece na base atualizada, de modo que o retrato do TCC nunca é alterado.
+- **Modelos pré-treinados:** os sete ativos vêm com XGBoost, LightGBM e MLP treinados nos dados do TCC (`scripts/treinar_ativos.py`). Ao trocar de base, os modelos são os mesmos; muda apenas o período de teste, que acompanha os 20% finais da série escolhida.
+- **Treinar novamente:** no modo pesquisador, a aba Desempenho refaz o treino em memória, com os mesmos dados, divisão e parâmetros, e mostra o RMSE publicado, o retreinado e a diferença. Os modelos publicados não são substituídos. XGBoost e LightGBM reproduzem o mesmo resultado; a MLP varia entre execuções.
+- **Uso local:** para apresentações, o painel roda na própria máquina sem depender da internet, exceto para atualizar as séries.
 
 ---
 
@@ -513,7 +521,7 @@ Os CSVs do painel usam ponto e vírgula entre colunas, vírgula decimal, datas d
 3. **Isolamento temporal:** no pregão $t$, o modelo usa apenas informações disponíveis até o fechamento de $t$; o alvo é o pregão seguinte.
 4. **Rastreabilidade dos modelos:** cada conjunto salvo registra o ativo, a data e a hora de salvamento (Brasília), as *features*, os tamanhos de treino e teste, as métricas e o histórico de perda da MLP.
 5. **Separação por ativo:** modelos e *scalers* nunca são compartilhados entre séries.
-6. **Atualização de dados:** o botão do painel e o `main.py` baixam novamente as séries; os CSVs só são substituídos quando o download é bem-sucedido.
+6. **Atualização de dados:** o botão do painel e o `main.py` baixam novamente as séries de `dados_coletados/`; os CSVs só são substituídos quando o download é bem-sucedido. O retrato `dados_tcc/` é fixo e garante a reprodução dos resultados do trabalho.
 7. **Conteúdo de terceiros:** fontes e licenças dos logotipos registradas em `assets/ativos/FONTES.md` e `assets/institucional/FONTES.md`.
 
 ---
